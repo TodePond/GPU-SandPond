@@ -101,7 +101,8 @@ const vertexShaderSource = `#version 300 es
 	out vec2 v_Position;
 	 
 	void main() {
-		gl_Position = vec4(a_Position, 0, 1);
+		vec2 position = (a_Position - 0.5) * 2.0;
+		gl_Position = vec4(position, 0, 1);
 		v_Position = a_Position;
 	}
 `
@@ -109,6 +110,7 @@ const vertexShaderSource = `#version 300 es
 //=================//
 // Fragment Shader //
 //=================//
+const WORLD_WIDTH = 200
 var fragmentShaderSource = `#version 300 es
 
 	precision highp float;
@@ -119,14 +121,7 @@ var fragmentShaderSource = `#version 300 es
 	
 	out vec4 colour;
 	
-	const float WORLD_WIDTH = 100.0;	
-	const float MID_X = WORLD_WIDTH / 2.0;
-	
 	void main() {
-		vec2 space = (v_Position + 1.0) * MID_X;
-		if (mod(space.x, 4.0) < 1.0 && mod(space.y, 4.0) < 1.0) {
-			colour = texture(u_Texture, v_Position);
-		}
 		colour = texture(u_Texture, v_Position);
 	}
 `
@@ -145,6 +140,7 @@ on.resize(() => {
 })
 
 const program = createProgram(gl, vertexShaderSource, fragmentShaderSource)
+gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
 
 // Position Attribute
 const positionLocation = gl.getAttribLocation(program, "a_Position")
@@ -162,15 +158,17 @@ gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, true, 0, 0)
 
 const texture = gl.createTexture()
 gl.bindTexture(gl.TEXTURE_2D, texture)
-gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
-gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, 2, 2, 0, gl.RED, gl.UNSIGNED_BYTE, new Uint8Array([
-	128, 64, 64, 128,
-]))
-
+const spaces = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH)
+for (let i = 0; i < spaces.length; i++) {
+	spaces[i] = Math.floor(Math.random() * 255)
+}
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RED, gl.UNSIGNED_BYTE, spaces)
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+
 
 //======//
 // Draw //
