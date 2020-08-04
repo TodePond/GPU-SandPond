@@ -123,8 +123,9 @@ var fragmentShaderSource = `#version 300 es
 	out vec4 colour;
 	
 	void main() {
-		vec2 position = v_TexturePosition;
-		colour = texture(u_Texture, position);
+		vec2 position = (v_TexturePosition);
+		vec4 element = texture(u_Texture, position);
+		if (element.r > 0.5) colour = vec4(1.0, 0.8, 0.0, 1.0);
 	}
 `
 
@@ -144,6 +145,8 @@ on.resize(() => {
 const program = createProgram(gl, vertexShaderSource, fragmentShaderSource)
 gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
 
+const isTargetLocation = gl.getUniformLocation(program, "u_isTarget")
+gl.uniform1ui(isTargetLocation, 1)
 
 // Texture Position Attribute
 const texturePositionLocation = gl.getAttribLocation(program, "a_TexturePosition")
@@ -162,11 +165,12 @@ gl.bufferData(gl.ARRAY_BUFFER, texturePositionData, gl.STATIC_DRAW)
 gl.enableVertexAttribArray(texturePositionLocation)
 gl.vertexAttribPointer(texturePositionLocation, 2, gl.FLOAT, true, 0, 0)
 
-const texture = gl.createTexture()
-gl.bindTexture(gl.TEXTURE_2D, texture)
+const texture1 = gl.createTexture()
+gl.bindTexture(gl.TEXTURE_2D, texture1)
 const spaces = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH)
 for (let i = 0; i < spaces.length; i++) {
-	spaces[i] = Math.floor(Math.random() * 2) * 255
+	//spaces[i] = Math.floor(Math.random() * 2) * 255
+	if (i === 0) spaces[i] = 255
 }
 gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RED, gl.UNSIGNED_BYTE, spaces)
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -174,26 +178,48 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-const targetTexture = gl.createTexture()
-gl.bindTexture(gl.TEXTURE_2D, targetTexture)
+const fb1 = gl.createFramebuffer()
+gl.bindFramebuffer(gl.FRAMEBUFFER, fb1)
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture1, 0);
+
+const texture2 = gl.createTexture()
+gl.bindTexture(gl.TEXTURE_2D, texture2)
 gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RED, gl.UNSIGNED_BYTE, null)
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-const fb = gl.createFramebuffer()
-gl.bindFramebuffer(gl.FRAMEBUFFER, fb)
-gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, targetTexture, 0);
+const fb2 = gl.createFramebuffer()
+gl.bindFramebuffer(gl.FRAMEBUFFER, fb2)
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture2, 0);
 
 //======//
 // Draw //
 //======//
+let currentDirection = true
 const draw = () => {
 	
+	let sourceTexture
+	let frameBuffer
+	let targetTexture
+	if (currentDirection) {
+		sourceTexture = texture1
+		frameBuffer = fb2
+		targetTexture = texture2
+		currentTexture = false
+	}
+	else {
+		sourceTexture = texture2
+		frameBuffer = fb1
+		targetTexture = texture1
+		currentTexture = true
+	}
+	
 	// Target
-	gl.bindFramebuffer(gl.FRAMEBUFFER, fb)
-	gl.bindTexture(gl.TEXTURE_2D, texture)
+	gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer)
+	gl.bindTexture(gl.TEXTURE_2D, sourceTexture)
+	gl.uniform1ui(isTargetLocation, 1)
 	
 	gl.clearColor(1, 1, 1, 1)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -203,6 +229,7 @@ const draw = () => {
 	// Canvas
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 	gl.bindTexture(gl.TEXTURE_2D, targetTexture)
+	gl.uniform1ui(isTargetLocation, 0)
 	
 	gl.clearColor(1, 1, 1, 1)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
