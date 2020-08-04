@@ -96,7 +96,7 @@ const createBuffer = (bindPoint, hint, data) => {
 //===============//
 // Vertex Shader //
 //===============//
-const WORLD_WIDTH = 1000
+const WORLD_WIDTH = 4000
 //const WORLD_WIDTH = 16384
 const vertexShaderSource = `#version 300 es
 
