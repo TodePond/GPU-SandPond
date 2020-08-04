@@ -94,35 +94,37 @@ const createBuffer = (bindPoint, hint, data) => {
 //===============//
 // Vertex Shader //
 //===============//
+const WORLD_WIDTH = 100
 const vertexShaderSource = `#version 300 es
 
-	in vec2 a_Position;
+	in vec2 a_TexturePosition;
 	
-	out vec2 v_Position;
-	 
+	out vec2 v_TexturePosition;
+	
 	void main() {
-		vec2 position = (a_Position - 0.5) * 2.0;
+		vec2 position = (a_TexturePosition - 0.5) * 2.0;
 		gl_Position = vec4(position, 0, 1);
-		v_Position = a_Position;
+		v_TexturePosition = a_TexturePosition;
 	}
 `
 
 //=================//
 // Fragment Shader //
 //=================//
-const WORLD_WIDTH = 200
 var fragmentShaderSource = `#version 300 es
 
 	precision highp float;
 	
-	in vec2 v_Position;
+	in vec2 v_TexturePosition;
+	in float v_isTarget;
 	
 	uniform sampler2D u_Texture;
 	
 	out vec4 colour;
 	
 	void main() {
-		colour = texture(u_Texture, v_Position);
+		vec2 position = v_TexturePosition;
+		colour = texture(u_Texture, position);
 	}
 `
 
@@ -142,9 +144,12 @@ on.resize(() => {
 const program = createProgram(gl, vertexShaderSource, fragmentShaderSource)
 gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
 
-// Position Attribute
-const positionLocation = gl.getAttribLocation(program, "a_Position")
-const positionBuffer = createBuffer(gl.ARRAY_BUFFER, gl.STATIC_DRAW, [
+
+// Texture Position Attribute
+const texturePositionLocation = gl.getAttribLocation(program, "a_TexturePosition")
+const texturePositionBuffer = gl.createBuffer()
+gl.bindBuffer(gl.ARRAY_BUFFER, texturePositionBuffer)
+const texturePositionData = new Float32Array([
 	-1.0, -1.0,
 	-1.0, 1.0,
 	1.0, 1.0,
@@ -153,14 +158,15 @@ const positionBuffer = createBuffer(gl.ARRAY_BUFFER, gl.STATIC_DRAW, [
 	1.0, -1.0,
 	-1.0, -1.0,
 ])
-gl.enableVertexAttribArray(positionLocation)
-gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, true, 0, 0)
+gl.bufferData(gl.ARRAY_BUFFER, texturePositionData, gl.STATIC_DRAW)
+gl.enableVertexAttribArray(texturePositionLocation)
+gl.vertexAttribPointer(texturePositionLocation, 2, gl.FLOAT, true, 0, 0)
 
 const texture = gl.createTexture()
 gl.bindTexture(gl.TEXTURE_2D, texture)
 const spaces = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH)
 for (let i = 0; i < spaces.length; i++) {
-	spaces[i] = Math.floor(Math.random() * 255)
+	spaces[i] = Math.floor(Math.random() * 2) * 255
 }
 gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RED, gl.UNSIGNED_BYTE, spaces)
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -168,13 +174,41 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
+const targetTexture = gl.createTexture()
+gl.bindTexture(gl.TEXTURE_2D, targetTexture)
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RED, gl.UNSIGNED_BYTE, null)
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
+const fb = gl.createFramebuffer()
+gl.bindFramebuffer(gl.FRAMEBUFFER, fb)
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, targetTexture, 0);
 
 //======//
 // Draw //
 //======//
 const draw = () => {
+	
+	// Target
+	gl.bindFramebuffer(gl.FRAMEBUFFER, fb)
+	gl.bindTexture(gl.TEXTURE_2D, texture)
+	
+	gl.clearColor(1, 1, 1, 1)
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	gl.viewport(0, 0, WORLD_WIDTH, WORLD_WIDTH)
 	gl.drawArrays(gl.TRIANGLES, 0, 6)
+	
+	// Canvas
+	gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+	gl.bindTexture(gl.TEXTURE_2D, targetTexture)
+	
+	gl.clearColor(1, 1, 1, 1)
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	gl.viewport(0, 0, canvas.clientWidth, canvas.clientWidth)
+	gl.drawArrays(gl.TRIANGLES, 0, 6)
+	
 	requestAnimationFrame(draw)
 }
 
