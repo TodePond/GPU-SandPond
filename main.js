@@ -140,10 +140,16 @@ var fragmentShaderSource = `#version 300 es
 	precision highp float;
 	
 	in vec2 v_Position;
-	out vec4 fragColor;
-
+	out vec4 colour;
+	
+	const float WORLD_WIDTH = 100.0;	
+	const float MID_X = WORLD_WIDTH / 2.0;
+	
 	void main() {
-		fragColor = vec4(1.0, 0.8, v_Position.x, 1.0);
+		vec2 space = (v_Position + 1.0) * MID_X;
+		if (mod(space.x, 4.0) < 1.0 && mod(space.y, 4.0) < 1.0) {
+			colour = vec4(1.0, 0.8, 0.0, 1.0);
+		}
 	}
 `
 
