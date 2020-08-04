@@ -124,8 +124,8 @@ var fragmentShaderSource = `#version 300 es
 	
 	void main() {
 		vec2 position = (v_TexturePosition);
-		vec4 element = texture(u_Texture, position);
-		if (element.r > 0.5) colour = vec4(1.0, 0.8, 0.0, 1.0);
+		colour = texture(u_Texture, position);
+		colour.r = colour.r - 0.01;
 	}
 `
 
@@ -169,8 +169,7 @@ const texture1 = gl.createTexture()
 gl.bindTexture(gl.TEXTURE_2D, texture1)
 const spaces = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH)
 for (let i = 0; i < spaces.length; i++) {
-	//spaces[i] = Math.floor(Math.random() * 2) * 255
-	if (i === 0) spaces[i] = 255
+	spaces[i] = Math.floor(Math.random() * 2) * 255
 }
 gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RED, gl.UNSIGNED_BYTE, spaces)
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -197,23 +196,23 @@ gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex
 //======//
 // Draw //
 //======//
-let currentDirection = true
+let currentTexture = 1
 const draw = () => {
 	
 	let sourceTexture
 	let frameBuffer
 	let targetTexture
-	if (currentDirection) {
+	if (currentTexture === 1) {
 		sourceTexture = texture1
 		frameBuffer = fb2
 		targetTexture = texture2
-		currentTexture = false
+		currentTexture = 2
 	}
 	else {
 		sourceTexture = texture2
 		frameBuffer = fb1
 		targetTexture = texture1
-		currentTexture = true
+		currentTexture = 1
 	}
 	
 	// Target
