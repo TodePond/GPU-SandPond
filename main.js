@@ -2,16 +2,18 @@
 //========//
 // Canvas //
 //========//
+const CANVAS_MARGIN = 10;
 const makeCanvas = () => {
 	const style = `
-		background-color: rgb(47, 51, 61)
+		background-color: rgb(47, 51, 61);
+		margin: ${CANVAS_MARGIN}px;
 	`
 	const canvas = HTML `<canvas style="${style}"></canvas>`
 	return canvas
 }
 	
 const resizeCanvas = (canvas) => {
-	const smallestDimension = Math.min(document.body.clientWidth, document.body.clientHeight)
+	const smallestDimension = Math.min(document.body.clientWidth - CANVAS_MARGIN * 2, document.body.clientHeight - CANVAS_MARGIN * 2)
 	canvas.style.width = smallestDimension + "px"
 	canvas.style.height = smallestDimension + "px"
 	
@@ -120,12 +122,24 @@ var fragmentShaderSource = `#version 300 es
 	
 	uniform sampler2D u_Texture;
 	
-	out vec4 colour;
+	out float colour;
 	
 	void main() {
-		vec2 position = (v_TexturePosition);
-		colour = texture(u_Texture, position);
-		colour.r = colour.r - 0.01;
+		vec2 position = v_TexturePosition;
+		float element = texture(u_Texture, position).r;
+		if (element == 1.0) colour = element;
+		
+		vec2 positionBelow = vec2(position.x, position.y - 0.01);
+		float elementBelow = texture(u_Texture, positionBelow).r;
+		if (elementBelow == 1.0) colour = elementBelow;
+		
+		vec2 positionRight = vec2(position.x + 0.01, position.y);
+		float elementRight = texture(u_Texture, positionRight).r;
+		if (elementRight == 1.0) colour = elementRight;
+		
+		vec2 positionLeft = vec2(position.x - 0.01, position.y);
+		float elementLeft = texture(u_Texture, positionLeft).r;
+		if (elementLeft == 1.0) colour = elementLeft;
 	}
 `
 
@@ -163,13 +177,14 @@ const texturePositionData = new Float32Array([
 ])
 gl.bufferData(gl.ARRAY_BUFFER, texturePositionData, gl.STATIC_DRAW)
 gl.enableVertexAttribArray(texturePositionLocation)
-gl.vertexAttribPointer(texturePositionLocation, 2, gl.FLOAT, true, 0, 0)
+gl.vertexAttribPointer(texturePositionLocation, 2, gl.FLOAT, false, 0, 0)
 
 const texture1 = gl.createTexture()
 gl.bindTexture(gl.TEXTURE_2D, texture1)
 const spaces = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH)
 for (let i = 0; i < spaces.length; i++) {
-	spaces[i] = Math.floor(Math.random() * 2) * 255
+	//spaces[i] = Math.floor(Math.random() * 2) * 255
+	if (i === 15) spaces[i] = 255
 }
 gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RED, gl.UNSIGNED_BYTE, spaces)
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -196,23 +211,23 @@ gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex
 //======//
 // Draw //
 //======//
-let currentTexture = 1
+let currentDirection = true
 const draw = () => {
 	
 	let sourceTexture
 	let frameBuffer
 	let targetTexture
-	if (currentTexture === 1) {
+	if (currentDirection === true) {
 		sourceTexture = texture1
 		frameBuffer = fb2
 		targetTexture = texture2
-		currentTexture = 2
+		currentDirection = false
 	}
 	else {
 		sourceTexture = texture2
 		frameBuffer = fb1
 		targetTexture = texture1
-		currentTexture = 1
+		currentDirection = true
 	}
 	
 	// Target
