@@ -96,7 +96,7 @@ const createBuffer = (bindPoint, hint, data) => {
 //===============//
 // Vertex Shader //
 //===============//
-const WORLD_WIDTH = 3000
+const WORLD_WIDTH = 16384
 const vertexShaderSource = `#version 300 es
 
 	in vec2 a_TexturePosition;
@@ -209,7 +209,8 @@ const spaces = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH)
 for (let i = 0; i < spaces.length; i++) {
 	//spaces[i] = Math.floor(Math.random() * 2) * 255
 	//if (i === 15) spaces[i] = 255
-	if (i === Math.floor(WORLD_WIDTH * WORLD_WIDTH / 2) + WORLD_WIDTH/2) spaces[i] = 255
+	//if (i === Math.floor(WORLD_WIDTH * WORLD_WIDTH / 2) + WORLD_WIDTH/2) spaces[i] = 255
+	if (Math.random() < 0.000001) spaces[i] = 255
 }
 gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RED, gl.UNSIGNED_BYTE, spaces)
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST );
