@@ -78,7 +78,7 @@ const createProgram = (gl, vertexShaderSource, fragmentShaderSource) => {
 //========//
 // Buffer //
 //========//
-const createBuffer = (bindPoint = gl.ARRAY_BUFFER, hint = gl.STATIC_DRAW, data) => {
+const createBuffer = (bindPoint, hint, data) => {
 	const buffer = gl.createBuffer()
 	const typedData = new Float32Array(data)
 	gl.bindBuffer(bindPoint, buffer)
@@ -89,34 +89,7 @@ const createBuffer = (bindPoint = gl.ARRAY_BUFFER, hint = gl.STATIC_DRAW, data) 
 //========//
 // Attrib //
 //========//
-const createAttrib = ({
-	name,
-	size,
-	type = gl.FLOAT,
-	normalise = false,
-	stride = 0,
-	offset = 0,
-	data,
-	bindPoint,
-	hint,
-}) => {
-	const attribLocation = gl.getAttribLocation(program, name)
-	const buffer = createBuffer(bindPoint, hint, data)
-	const vertexArray = gl.createVertexArray()
-	vertexArray.length = data.length
-	gl.bindVertexArray(vertexArray)
-	gl.enableVertexAttribArray(attribLocation)
-	gl.vertexAttribPointer(attribLocation, size, type, normalise, stride, offset)
-	return {
-		vertexArray,
-		count: data.length / size,
-	}
-}
 
-const drawAttrib = (attrib) => {
-	gl.bindVertexArray(attrib.vertexArray)
-	gl.drawArrays(gl.TRIANGLES, 0, attrib.count)
-}
 
 //===============//
 // Vertex Shader //
@@ -124,6 +97,7 @@ const drawAttrib = (attrib) => {
 const vertexShaderSource = `#version 300 es
 
 	in vec2 a_Position;
+	
 	out vec2 v_Position;
 	 
 	void main() {
@@ -140,6 +114,9 @@ var fragmentShaderSource = `#version 300 es
 	precision highp float;
 	
 	in vec2 v_Position;
+	
+	uniform sampler2D u_Texture;
+	
 	out vec4 colour;
 	
 	const float WORLD_WIDTH = 100.0;	
@@ -148,8 +125,9 @@ var fragmentShaderSource = `#version 300 es
 	void main() {
 		vec2 space = (v_Position + 1.0) * MID_X;
 		if (mod(space.x, 4.0) < 1.0 && mod(space.y, 4.0) < 1.0) {
-			colour = vec4(1.0, 0.8, 0.0, 1.0);
+			colour = texture(u_Texture, v_Position);
 		}
+		colour = texture(u_Texture, v_Position);
 	}
 `
 
@@ -158,9 +136,7 @@ var fragmentShaderSource = `#version 300 es
 //=======//
 const canvas = makeCanvas()
 document.body.appendChild(canvas)
-
 const gl = makeContext(canvas)
-
 resizeCanvas(canvas)
 resizeContext(gl, canvas)
 on.resize(() => {
@@ -169,25 +145,38 @@ on.resize(() => {
 })
 
 const program = createProgram(gl, vertexShaderSource, fragmentShaderSource)
-const positionAttrib = createAttrib({
-	name: "a_Position",
-	size: 2,
-	data: [
-		-1.0, -1.0,
-		-1.0, 1.0,
-		1.0, 1.0,
-		
-		1.0, 1.0,
-		1.0, -1.0,
-		-1.0, -1.0,
-	],
-})
+
+// Position Attribute
+const positionLocation = gl.getAttribLocation(program, "a_Position")
+const positionBuffer = createBuffer(gl.ARRAY_BUFFER, gl.STATIC_DRAW, [
+	-1.0, -1.0,
+	-1.0, 1.0,
+	1.0, 1.0,
+	
+	1.0, 1.0,
+	1.0, -1.0,
+	-1.0, -1.0,
+])
+gl.enableVertexAttribArray(positionLocation)
+gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, true, 0, 0)
+
+const texture = gl.createTexture()
+gl.bindTexture(gl.TEXTURE_2D, texture)
+gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, 2, 2, 0, gl.RED, gl.UNSIGNED_BYTE, new Uint8Array([
+	128, 64, 64, 128,
+]))
+
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
 //======//
 // Draw //
 //======//
 const draw = () => {
-	drawAttrib(positionAttrib)
+	gl.drawArrays(gl.TRIANGLES, 0, 6)
 	requestAnimationFrame(draw)
 }
 
