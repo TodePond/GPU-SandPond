@@ -100,7 +100,7 @@ const createAttrib = ({
 	bindPoint,
 	hint,
 }) => {
-	const attribLocation = gl.getAttribLocation(program, "a_position")
+	const attribLocation = gl.getAttribLocation(program, name)
 	const buffer = createBuffer(bindPoint, hint, data)
 	const vertexArray = gl.createVertexArray()
 	vertexArray.length = data.length
@@ -123,10 +123,12 @@ const drawAttrib = (attrib) => {
 //===============//
 const vertexShaderSource = `#version 300 es
 
-	in vec4 a_position;
+	in vec2 a_Position;
+	out vec2 v_Position;
 	 
 	void main() {
-		gl_Position = a_position;
+		gl_Position = vec4(a_Position, 0, 1);
+		v_Position = a_Position;
 	}
 `
 
@@ -136,10 +138,12 @@ const vertexShaderSource = `#version 300 es
 var fragmentShaderSource = `#version 300 es
 
 	precision highp float;
-	out vec4 outColor;
+	
+	in vec2 v_Position;
+	out vec4 fragColor;
 
 	void main() {
-		outColor = vec4(1, 0.8, 0.0, 1);
+		fragColor = vec4(1.0, 0.8, v_Position.x, 1.0);
 	}
 `
 
@@ -160,23 +164,28 @@ on.resize(() => {
 
 const program = createProgram(gl, vertexShaderSource, fragmentShaderSource)
 const positionAttrib = createAttrib({
-	name: "a_position",
+	name: "a_Position",
 	size: 2,
 	data: [
-		0.0, 0.0,
-		0.0, 0.5,
-		0.5, 0.5,
+		-1.0, -1.0,
+		-1.0, 1.0,
+		1.0, 1.0,
 		
-		0.5, 0.5,
-		0.5, 0.0,
-		0.0, 0.0,
+		1.0, 1.0,
+		1.0, -1.0,
+		-1.0, -1.0,
 	],
 })
 
 //======//
 // Draw //
 //======//
-drawAttrib(positionAttrib)
+const draw = () => {
+	drawAttrib(positionAttrib)
+	requestAnimationFrame(draw)
+}
+
+requestAnimationFrame(draw)
 
 
 
