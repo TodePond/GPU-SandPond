@@ -96,7 +96,7 @@ const createBuffer = (bindPoint, hint, data) => {
 //===============//
 // Vertex Shader //
 //===============//
-const WORLD_WIDTH = 100
+const WORLD_WIDTH = 3000
 const vertexShaderSource = `#version 300 es
 
 	in vec2 a_TexturePosition;
@@ -121,25 +121,46 @@ var fragmentShaderSource = `#version 300 es
 	in float v_isTarget;
 	
 	uniform sampler2D u_Texture;
+	uniform float u_time;
 	
 	out float colour;
 	
+	float random (vec2 st) {
+		return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+	}
+	
 	void main() {
+	
 		vec2 position = v_TexturePosition;
 		float element = texture(u_Texture, position).r;
 		if (element == 1.0) colour = element;
 		
-		vec2 positionBelow = vec2(position.x, position.y - 0.01);
-		float elementBelow = texture(u_Texture, positionBelow).r;
-		if (elementBelow == 1.0) colour = elementBelow;
 		
-		vec2 positionRight = vec2(position.x + 0.01, position.y);
-		float elementRight = texture(u_Texture, positionRight).r;
-		if (elementRight == 1.0) colour = elementRight;
+		float rando = random(vec2(u_time / position));
 		
-		vec2 positionLeft = vec2(position.x - 0.01, position.y);
-		float elementLeft = texture(u_Texture, positionLeft).r;
-		if (elementLeft == 1.0) colour = elementLeft;
+		if (rando < 0.25) {
+			vec2 positionBelow = vec2(position.x, position.y - 1.0 / ${WORLD_WIDTH}.0);
+			float elementBelow = texture(u_Texture, positionBelow).r;
+			if (elementBelow == 1.0) colour = elementBelow;
+		}
+		
+		else if (rando < 0.5) {
+			vec2 positionAbove = vec2(position.x, position.y + 1.0 / ${WORLD_WIDTH}.0);
+			float elementAbove = texture(u_Texture, positionAbove).r;
+			if (elementAbove == 1.0) colour = elementAbove;
+		}
+		
+		else if (rando < 0.75) {
+			vec2 positionRight = vec2(position.x + 1.0 / ${WORLD_WIDTH}.0, position.y);
+			float elementRight = texture(u_Texture, positionRight).r;
+			if (elementRight == 1.0) colour = elementRight;
+		}
+		
+		else {
+			vec2 positionLeft = vec2(position.x - 1.0 / ${WORLD_WIDTH}.0, position.y);
+			float elementLeft = texture(u_Texture, positionLeft).r;
+			if (elementLeft == 1.0) colour = elementLeft;
+		}
 	}
 `
 
@@ -161,6 +182,9 @@ gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
 
 const isTargetLocation = gl.getUniformLocation(program, "u_isTarget")
 gl.uniform1ui(isTargetLocation, 1)
+
+const timeLocation = gl.getUniformLocation(program, "u_time")
+gl.uniform1f(timeLocation, 0)
 
 // Texture Position Attribute
 const texturePositionLocation = gl.getAttribLocation(program, "a_TexturePosition")
@@ -184,10 +208,11 @@ gl.bindTexture(gl.TEXTURE_2D, texture1)
 const spaces = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH)
 for (let i = 0; i < spaces.length; i++) {
 	//spaces[i] = Math.floor(Math.random() * 2) * 255
-	if (i === 15) spaces[i] = 255
+	//if (i === 15) spaces[i] = 255
+	if (i === Math.floor(WORLD_WIDTH * WORLD_WIDTH / 2) + WORLD_WIDTH/2) spaces[i] = 255
 }
 gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RED, gl.UNSIGNED_BYTE, spaces)
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST );
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -199,7 +224,7 @@ gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex
 const texture2 = gl.createTexture()
 gl.bindTexture(gl.TEXTURE_2D, texture2)
 gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RED, gl.UNSIGNED_BYTE, null)
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST );
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -212,6 +237,7 @@ gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex
 // Draw //
 //======//
 let currentDirection = true
+let time = 0
 const draw = () => {
 	
 	let sourceTexture
@@ -229,6 +255,8 @@ const draw = () => {
 		targetTexture = texture1
 		currentDirection = true
 	}
+	
+	gl.uniform1f(timeLocation, time)
 	
 	// Target
 	gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer)
@@ -250,6 +278,8 @@ const draw = () => {
 	gl.viewport(0, 0, canvas.clientWidth, canvas.clientWidth)
 	gl.drawArrays(gl.TRIANGLES, 0, 6)
 	
+	time++
+	if (time > 255) time = 0
 	requestAnimationFrame(draw)
 }
 
