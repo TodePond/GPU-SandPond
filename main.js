@@ -96,7 +96,8 @@ const createBuffer = (bindPoint, hint, data) => {
 //===============//
 // Vertex Shader //
 //===============//
-const WORLD_WIDTH = 16384
+const WORLD_WIDTH = 5000
+//const WORLD_WIDTH = 16384
 const vertexShaderSource = `#version 300 es
 
 	in vec2 a_TexturePosition;
