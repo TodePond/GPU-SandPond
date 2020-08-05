@@ -96,7 +96,7 @@ const createBuffer = (bindPoint, hint, data) => {
 //===============//
 // Vertex Shader //
 //===============//
-const WORLD_WIDTH = 200
+const WORLD_WIDTH = 1000
 //const WORLD_WIDTH = 16384
 const vertexShaderSource = `#version 300 es
 
@@ -142,10 +142,10 @@ var fragmentShaderSource = `#version 300 es
 		float ewX = v_TexturePosition.x + x / ${WORLD_WIDTH}.0;
 		float ewY = v_TexturePosition.y + y / ${WORLD_WIDTH}.0;
 		
-		ewX = ewX * ${WORLD_WIDTH}.0;
+		ewX = ewX * ${WORLD_WIDTH * WORLD_WIDTH}.0;
 		ewX = floor(ewX);
 		
-		ewY = ewY * ${WORLD_WIDTH}.0;
+		ewY = ewY * ${WORLD_WIDTH * WORLD_WIDTH}.0;
 		ewY = floor(ewY);
 		
 		return vec2(ewX, ewY);
@@ -153,13 +153,13 @@ var fragmentShaderSource = `#version 300 es
 	
 	vec2 ew(float x, float y) {
 		vec2 xy = world(x, y);
-		xy = xy / ${WORLD_WIDTH}.0;
+		xy = xy / ${WORLD_WIDTH * WORLD_WIDTH}.0;
 		return xy;
 	}
 	
 	bool isPicked(float x, float y) {
 		vec2 space = ew(x, y);
-		return random(space / (u_time)) < 0.5;
+		return random(space / (u_time)) < 0.9;
 	}
 	
 	bool isPickedInWindow(float x, float y) {
@@ -204,14 +204,33 @@ var fragmentShaderSource = `#version 300 es
 	
 	void main() {
 		
-		vec4 element = getColour(0.0, 0.0);
-		vec4 elementAbove = getColour(0.0, 1.0);
-		
-		if (elementAbove == SAND) {
-			colour = SAND;
+		// Am I in someone else's event window??
+		if (isInWindow(0.0, 0.0)) {
+			vec4 element = getColour(0.0, 0.0);
+			vec4 elementAbove = getColour(0.0, 1.0);
+			if (/*element == EMPTY && */elementAbove == SAND) {
+				colour = SAND;
+				return;
+			}
+			colour = getColour(0.0, 0.0);
 			return;
 		}
+		
+		// Am I an origin??
+		/*if (isPicked(0.0, 0.0)) {
+			vec4 element = getColour(0.0, 0.0);
+			vec4 elementBelow = getColour(0.0, -1.0);
+			if (element == SAND && elementBelow == EMPTY) {
+				colour = EMPTY;
+				return;
+			}
+			colour = getColour(0.0, 0.0);
+			return;
+		}*/
+		
+		// Then I'm not involved in any events :(
 		colour = getColour(0.0, 0.0);
+		
 	}
 `
 
@@ -258,17 +277,17 @@ const texture1 = gl.createTexture()
 gl.bindTexture(gl.TEXTURE_2D, texture1)
 const spaces = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH * 4)
 for (let i = 0; i < spaces.length; i += 4) {
-	if (Math.random() < 0.1) {
+	if (Math.random() < 0.01) {
 		spaces[i] = 255
 		spaces[i+1] = 204
 		spaces[i+3] = 255
 	}
 	//if (i === 15) spaces[i] = 255
-	if (i === Math.floor(WORLD_WIDTH * WORLD_WIDTH * 4 / 2) + WORLD_WIDTH * 4/2) {
+	/*if (i === Math.floor(WORLD_WIDTH * WORLD_WIDTH * 4 / 2) + WORLD_WIDTH * 4/2) {
 		spaces[i] = 255
 		spaces[i+1] = 204
 		spaces[i+3] = 255
-	}
+	}*/
 	//if (Math.random() < 0.000001) spaces[i] = 255
 }
 gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RGBA, gl.UNSIGNED_BYTE, spaces)
@@ -350,7 +369,7 @@ const draw = async () => {
 	
 	time++
 	if (time > 255) time = 0
-	await wait(250)
+	//await wait(250)
 	requestAnimationFrame(draw)
 }
 
