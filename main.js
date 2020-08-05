@@ -294,11 +294,11 @@ let texture1 = gl.createTexture()
 gl.bindTexture(gl.TEXTURE_2D, texture1)
 const spaces = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH * 4)
 for (let i = 0; i < spaces.length; i += 4) {
-	if (Math.random() < 0.05) {
+	/*if (Math.random() < 0.05) {
 		spaces[i] = 255
 		spaces[i+1] = 204
 		spaces[i+3] = 255
-	}
+	}*/
 	//if (i === 15) spaces[i] = 255
 	/*if (i === Math.floor(WORLD_WIDTH * WORLD_WIDTH * 4 / 2) + WORLD_WIDTH * 4/2) {
 		spaces[i] = 255
@@ -393,16 +393,15 @@ canvas.on.mousedown((e) => {
 	const y = WORLD_WIDTH - Math.round((e.offsetY / canvas.clientHeight) * WORLD_WIDTH)
 	
 	const pixels = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH * 4)
-	//gl.readPixels(0, 0, WORLD_WIDTH, WORLD_WIDTH, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+	gl.bindFramebuffer(gl.FRAMEBUFFER, fb2)
+	gl.readPixels(0, 0, WORLD_WIDTH, WORLD_WIDTH, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
 	
-	for (let i = 0; i < pixels.length; i += 4) {
-		if (Math.random() < 0.05) {
-			pixels[i] = 255
-			pixels[i+1] = 204
-			pixels[i+3] = 255
-		}
-		
-	}
+	const id = (y * WORLD_WIDTH * 4) + x * 4
+	
+	pixels[id] = 255
+	pixels[id+1] = 204
+	pixels[id+2] = 0
+	pixels[id+3] = 255
 	
 	currentDirection = true
 	gl.bindTexture(gl.TEXTURE_2D, texture1)
