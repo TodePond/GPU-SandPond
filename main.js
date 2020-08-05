@@ -96,7 +96,7 @@ const createBuffer = (bindPoint, hint, data) => {
 //===============//
 // Vertex Shader //
 //===============//
-const WORLD_WIDTH = 200
+const WORLD_WIDTH = 300
 //const WORLD_WIDTH = 16384
 const vertexShaderSource = `#version 300 es
 
@@ -390,30 +390,66 @@ requestAnimationFrame(draw)
 //=========//
 // Dropper //
 //=========//
-let dropX
-let dropY
+let dropperX
+let dropperY
 let DROPPER_SIZE = 3
 
+let previousDown = false
+let previousX = undefined
+let previousY = undefined
+
 const dropIfPossible = () => {
-	if (!Mouse.down) return
-	if (dropX === undefined) return
+	if (!Mouse.down) {
+		previousDown = false
+		return
+	}
+	if (dropperX === undefined) return
 	
-	drop(dropX, dropY)
+	drop(dropperX, dropperY)
+	
+	previousDown = true
+	previousX = dropperX
+	previousY = dropperY
 }
 
 const drop = (dropX, dropY) => {
 
 	const coords = []
 	
-	for (let x = -DROPPER_SIZE; x <= DROPPER_SIZE; x++) {
-		for (let y = -DROPPER_SIZE; y <= DROPPER_SIZE; y++) {
-			const finalX = dropX+x
-			const finalY = dropY+y
-			if (finalX >= WORLD_WIDTH) continue
-			if (finalY >= WORLD_WIDTH) continue
-			if (finalX < 0) continue
-			if (finalY < 0) continue
-			coords.push([finalX, finalY])
+	// Trail
+	if (previousDown) {
+		const xDiff = dropX - previousX
+		const yDiff = dropY - previousY
+		
+		const xAbs = Math.abs(xDiff)
+		const yAbs = Math.abs(yDiff)
+		
+		let largest = Math.max(xAbs, yAbs)
+		if (largest == 0) largest = 0.00001
+		
+		const xRatio = (xAbs / largest)
+		const yRatio = yAbs / largest
+		
+		const xWay = Math.sign(xDiff).d
+		const yWay = Math.sign(yDiff)
+		
+		const xInc = xWay * xRatio
+		const yInc = yWay * yRatio
+		
+		for (let i = 0; i < largest; i++) {
+			const xNew = Math.round(dropX - xInc * i)
+			const yNew = Math.round(dropY - yInc * i)
+			for (let x = -DROPPER_SIZE; x <= DROPPER_SIZE; x++) {
+				for (let y = -DROPPER_SIZE; y <= DROPPER_SIZE; y++) {
+					const finalX = xNew+x
+					const finalY = yNew+y
+					if (finalX >= WORLD_WIDTH) continue
+					if (finalY >= WORLD_WIDTH) continue
+					if (finalX < 0) continue
+					if (finalY < 0) continue
+					coords.push([finalX, finalY])
+				}
+			}
 		}
 	}
 	
@@ -456,8 +492,8 @@ on.mousewheel((e) => {
 })
 
 canvas.on.mousemove((e) => {
-	dropX = Math.round((e.offsetX / canvas.clientWidth) * WORLD_WIDTH)
-	dropY = WORLD_WIDTH - Math.round((e.offsetY / canvas.clientHeight) * WORLD_WIDTH)
+	dropperX = Math.round((e.offsetX / canvas.clientWidth) * WORLD_WIDTH)
+	dropperY = WORLD_WIDTH - Math.round((e.offsetY / canvas.clientHeight) * WORLD_WIDTH)
 })
 
 
