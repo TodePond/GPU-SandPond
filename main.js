@@ -96,7 +96,7 @@ const createBuffer = (bindPoint, hint, data) => {
 //===============//
 // Vertex Shader //
 //===============//
-const WORLD_WIDTH = 4000
+const WORLD_WIDTH = 30
 //const WORLD_WIDTH = 16384
 const vertexShaderSource = `#version 300 es
 
@@ -114,6 +114,11 @@ const vertexShaderSource = `#version 300 es
 //=================//
 // Fragment Shader //
 //=================//
+// Event Window (origin r)
+//========================
+//  r
+// gba
+
 var fragmentShaderSource = `#version 300 es
 
 	precision highp float;
@@ -124,44 +129,78 @@ var fragmentShaderSource = `#version 300 es
 	uniform sampler2D u_Texture;
 	uniform float u_time;
 	
-	out float colour;
+	out vec4 colour;
 	
-	float random (vec2 st) {
+	float random(vec2 st) {
 		return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
 	}
 	
+	vec2 siteOrigin(vec2 position) {
+		return position;
+	}
+	
+	vec2 world(float x, float y) {
+		float ewX = v_TexturePosition.x + x / ${WORLD_WIDTH}.0;
+		float ewY = v_TexturePosition.y + y / ${WORLD_WIDTH}.0;
+		
+		ewX = ewX * ${WORLD_WIDTH}.0;
+		ewX = floor(ewX);
+		
+		ewY = ewY * ${WORLD_WIDTH}.0;
+		ewY = floor(ewY);
+		
+		return vec2(ewX, ewY);
+	}
+	
+	vec2 ew(float x, float y) {
+		vec2 xy = world(x, y);
+		xy = xy / ${WORLD_WIDTH}.0;
+		return xy;
+	}
+	
+	bool isPicked(float x, float y) {
+		vec2 space = ew(x, y);
+		return random(space / u_time) < 0.25;
+	}
+	
+	bool isPickedInWindow(float x, float y) {
+		if (!isPicked(x, y + 1.0)) return false;
+		return true;
+	}
+	
+	const vec4 WHITE = vec4(224.0 / 255.0, 224.0 / 255.0, 224.0 / 255.0, 1.0);
+	const vec4 BLANK = vec4(0.0, 0.0, 0.0, 0.0);
+	const vec4 RED = vec4(1.0, 70.0 / 255.0, 70.0 / 255.0, 1.0);
+	const vec4 BLUE = vec4(0.0, 0.5, 1.0, 1.0);
+	const vec4 GREEN = vec4(0.0, 1.0, 0.5, 1.0);
+	
 	void main() {
 	
-		vec2 position = v_TexturePosition;
-		float element = texture(u_Texture, position).r;
-		if (element == 1.0) colour = element;
+		// Get my world grid coord
+		vec2 xy = world(0.0, 0.0);
+		float distanceToTop = ${WORLD_WIDTH}.0 - xy.y;
 		
 		
-		float rando = random(vec2(u_time / position));
-		
-		if (rando < 0.25) {
-			vec2 positionBelow = vec2(position.x, position.y - 1.0 / ${WORLD_WIDTH}.0);
-			float elementBelow = texture(u_Texture, positionBelow).r;
-			if (elementBelow == 1.0) colour = elementBelow;
+		float y = 1.0;
+		while (y < ${WORLD_WIDTH}.0) {
+			if (isPicked(0.0, y)) {
+				if (!isPickedInWindow(0.0, y)) {
+					colour = RED;
+					return;
+				}
+			}
+			else break;
+			y = y + 2.0;
 		}
 		
-		else if (rando < 0.5) {
-			vec2 positionAbove = vec2(position.x, position.y + 1.0 / ${WORLD_WIDTH}.0);
-			float elementAbove = texture(u_Texture, positionAbove).r;
-			if (elementAbove == 1.0) colour = elementAbove;
+		// Am I NOT selected by the PRNG?
+		if (!isPicked(0.0, 0.0)) {
+			colour = BLANK;
+			return;
 		}
 		
-		else if (rando < 0.75) {
-			vec2 positionRight = vec2(position.x + 1.0 / ${WORLD_WIDTH}.0, position.y);
-			float elementRight = texture(u_Texture, positionRight).r;
-			if (elementRight == 1.0) colour = elementRight;
-		}
-		
-		else {
-			vec2 positionLeft = vec2(position.x - 1.0 / ${WORLD_WIDTH}.0, position.y);
-			float elementLeft = texture(u_Texture, positionLeft).r;
-			if (elementLeft == 1.0) colour = elementLeft;
-		}
+		// Then I must be an origin!
+		colour = WHITE;
 	}
 `
 
@@ -206,14 +245,14 @@ gl.vertexAttribPointer(texturePositionLocation, 2, gl.FLOAT, false, 0, 0)
 
 const texture1 = gl.createTexture()
 gl.bindTexture(gl.TEXTURE_2D, texture1)
-const spaces = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH)
-for (let i = 0; i < spaces.length; i++) {
+const spaces = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH * 4)
+for (let i = 0; i < spaces.length; i += 4) {
 	//spaces[i] = Math.floor(Math.random() * 2) * 255
 	//if (i === 15) spaces[i] = 255
-	//if (i === Math.floor(WORLD_WIDTH * WORLD_WIDTH / 2) + WORLD_WIDTH/2) spaces[i] = 255
-	if (Math.random() < 0.000001) spaces[i] = 255
+	if (i === Math.floor(WORLD_WIDTH * WORLD_WIDTH * 4 / 2) + WORLD_WIDTH * 4/2) spaces[i] = 255
+	//if (Math.random() < 0.000001) spaces[i] = 255
 }
-gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RED, gl.UNSIGNED_BYTE, spaces)
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RGBA, gl.UNSIGNED_BYTE, spaces)
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST );
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -240,7 +279,7 @@ gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex
 //======//
 let currentDirection = true
 let time = 0
-const draw = () => {
+const draw = async () => {
 	
 	let sourceTexture
 	let frameBuffer
@@ -260,7 +299,16 @@ const draw = () => {
 	
 	gl.uniform1f(timeLocation, time)
 	
-	// Target
+	// Debug
+	gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+	gl.bindTexture(gl.TEXTURE_2D, texture1)
+	gl.uniform1ui(isTargetLocation, 1)
+	
+	gl.viewport(0, 0, canvas.clientWidth, canvas.clientWidth)
+	gl.drawArrays(gl.TRIANGLES, 0, 6)
+	
+	
+	/*// Target
 	gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer)
 	gl.bindTexture(gl.TEXTURE_2D, sourceTexture)
 	gl.uniform1ui(isTargetLocation, 1)
@@ -278,10 +326,11 @@ const draw = () => {
 	gl.clearColor(1, 1, 1, 1)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 	gl.viewport(0, 0, canvas.clientWidth, canvas.clientWidth)
-	gl.drawArrays(gl.TRIANGLES, 0, 6)
+	gl.drawArrays(gl.TRIANGLES, 0, 6)*/
 	
 	time++
 	if (time > 255) time = 0
+	await wait(100)
 	requestAnimationFrame(draw)
 }
 
