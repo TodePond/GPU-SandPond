@@ -392,17 +392,18 @@ requestAnimationFrame(draw)
 //=========//
 let dropperX
 let dropperY
-let DROPPER_SIZE = 3
+let DROPPER_SIZE = 2
 
 let previousDown = false
 let previousX = undefined
 let previousY = undefined
 
 const dropIfPossible = () => {
-	if (!Mouse.down) {
+	if (!Mouse.down && Touches.length <= 0) {
 		previousDown = false
 		return
 	}
+	
 	if (dropperX === undefined) return
 	
 	drop(dropperX, dropperY)
@@ -430,7 +431,7 @@ const drop = (dropX, dropY) => {
 		const xRatio = (xAbs / largest)
 		const yRatio = yAbs / largest
 		
-		const xWay = Math.sign(xDiff).d
+		const xWay = Math.sign(xDiff)
 		const yWay = Math.sign(yDiff)
 		
 		const xInc = xWay * xRatio
@@ -496,4 +497,13 @@ canvas.on.mousemove((e) => {
 	dropperY = WORLD_WIDTH - Math.round((e.offsetY / canvas.clientHeight) * WORLD_WIDTH)
 })
 
+canvas.onPassive.touchstart(e => {
+	dropperX = Math.round(((e.changedTouches[0].clientX - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
+	dropperY = WORLD_WIDTH - Math.round(((e.changedTouches[0].clientY - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
+})
+
+canvas.onPassive.touchmove(e => {
+	dropperX = Math.round(((e.changedTouches[0].clientX - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
+	dropperY = WORLD_WIDTH - Math.round(((e.changedTouches[0].clientY - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
+})
 
