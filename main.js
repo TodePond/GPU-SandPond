@@ -24,7 +24,7 @@ const resizeCanvas = (canvas) => {
 //=========//
 // Context //
 //=========//
-const makeContext = (canvas) => canvas.getContext("webgl2")
+const makeContext = (canvas) => canvas.getContext("webgl2", {preserveDrawingBuffer: true})
 const resizeContext = (gl, canvas) => {
 	const smallestDimension = Math.min(document.body.clientWidth, document.body.clientHeight)
 	gl.viewport(0, 0, canvas.clientWidth, canvas.clientWidth)
@@ -200,11 +200,11 @@ var fragmentShaderSource = `#version 300 es
 		float ewY = v_TexturePosition.y + y / ${WORLD_WIDTH}.0;
 		
 		/*ewX = ewX * ${WORLD_WIDTH * WORLD_WIDTH}.0;
-		ewX = floor(ewX);
+		ewX = round(ewX);
 		ewX = ewX / ${WORLD_WIDTH * WORLD_WIDTH}.0;
 		
 		ewY = ewY * ${WORLD_WIDTH * WORLD_WIDTH}.0;
-		ewY = floor(ewY);
+		ewY = round(ewY);
 		ewY = ewY / ${WORLD_WIDTH * WORLD_WIDTH}.0;*/
 		
 		vec2 xy = vec2(ewX, ewY);
@@ -290,7 +290,7 @@ gl.bufferData(gl.ARRAY_BUFFER, texturePositionData, gl.STATIC_DRAW)
 gl.enableVertexAttribArray(texturePositionLocation)
 gl.vertexAttribPointer(texturePositionLocation, 2, gl.FLOAT, false, 0, 0)
 
-const texture1 = gl.createTexture()
+let texture1 = gl.createTexture()
 gl.bindTexture(gl.TEXTURE_2D, texture1)
 const spaces = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH * 4)
 for (let i = 0; i < spaces.length; i += 4) {
@@ -308,26 +308,26 @@ for (let i = 0; i < spaces.length; i += 4) {
 	//if (Math.random() < 0.000001) spaces[i] = 255
 }
 gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RGBA, gl.UNSIGNED_BYTE, spaces)
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST );
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST )
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
 
 const fb1 = gl.createFramebuffer()
 gl.bindFramebuffer(gl.FRAMEBUFFER, fb1)
-gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture1, 0);
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture1, 0)
 
 const texture2 = gl.createTexture()
 gl.bindTexture(gl.TEXTURE_2D, texture2)
 gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST );
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST )
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
 
 const fb2 = gl.createFramebuffer()
 gl.bindFramebuffer(gl.FRAMEBUFFER, fb2)
-gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture2, 0);
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture2, 0)
 
 //======//
 // Draw //
@@ -361,23 +361,11 @@ const draw = async () => {
 	
 	gl.uniform1f(timeLocation, time)
 	
-	// Debug
-	/*gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-	gl.bindTexture(gl.TEXTURE_2D, texture1)
-	gl.uniform1ui(isTargetLocation, 1)
-	
-	gl.viewport(0, 0, canvas.clientWidth, canvas.clientWidth)
-	gl.drawArrays(gl.TRIANGLES, 0, 6)*/
-	
-	
-	
 	// Target
 	gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer)
 	gl.bindTexture(gl.TEXTURE_2D, sourceTexture)
 	gl.uniform1ui(isTargetLocation, 1)
 	
-	gl.clearColor(1, 1, 1, 1)
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 	gl.viewport(0, 0, WORLD_WIDTH, WORLD_WIDTH)
 	gl.drawArrays(gl.TRIANGLES, 0, 6)
 	
@@ -386,8 +374,6 @@ const draw = async () => {
 	gl.bindTexture(gl.TEXTURE_2D, targetTexture)
 	gl.uniform1ui(isTargetLocation, 0)
 	
-	gl.clearColor(1, 1, 1, 1)
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 	gl.viewport(0, 0, canvas.clientWidth, canvas.clientWidth)
 	gl.drawArrays(gl.TRIANGLES, 0, 6)
 	
@@ -402,6 +388,29 @@ requestAnimationFrame(draw)
 //=========//
 // Dropper //
 //=========//
-
+canvas.on.mousedown((e) => {
+	const x = Math.round((e.offsetX / canvas.clientWidth) * WORLD_WIDTH)
+	const y = WORLD_WIDTH - Math.round((e.offsetY / canvas.clientHeight) * WORLD_WIDTH)
+	
+	const pixels = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH * 4)
+	//gl.readPixels(0, 0, WORLD_WIDTH, WORLD_WIDTH, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+	
+	for (let i = 0; i < pixels.length; i += 4) {
+		if (Math.random() < 0.05) {
+			pixels[i] = 255
+			pixels[i+1] = 204
+			pixels[i+3] = 255
+		}
+		
+	}
+	
+	currentDirection = true
+	gl.bindTexture(gl.TEXTURE_2D, texture1)
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+	
+	gl.bindTexture(gl.TEXTURE_2D, texture2)
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+	
+})
 
 
