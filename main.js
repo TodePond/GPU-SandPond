@@ -96,7 +96,7 @@ const createBuffer = (bindPoint, hint, data) => {
 //===============//
 // Vertex Shader //
 //===============//
-const WORLD_WIDTH = 50
+const WORLD_WIDTH = 200
 //const WORLD_WIDTH = 16384
 const vertexShaderSource = `#version 300 es
 
@@ -294,7 +294,7 @@ const texture1 = gl.createTexture()
 gl.bindTexture(gl.TEXTURE_2D, texture1)
 const spaces = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH * 4)
 for (let i = 0; i < spaces.length; i += 4) {
-	if (Math.random() < 0.01) {
+	if (Math.random() < 0.05) {
 		spaces[i] = 255
 		spaces[i+1] = 204
 		spaces[i+3] = 255
@@ -399,6 +399,9 @@ const draw = async () => {
 
 requestAnimationFrame(draw)
 
+//=========//
+// Dropper //
+//=========//
 
 
 
