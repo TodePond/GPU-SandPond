@@ -96,7 +96,7 @@ const createBuffer = (bindPoint, hint, data) => {
 //===============//
 // Vertex Shader //
 //===============//
-const WORLD_WIDTH = 1000
+const WORLD_WIDTH = 50
 //const WORLD_WIDTH = 16384
 const vertexShaderSource = `#version 300 es
 
@@ -142,23 +142,21 @@ var fragmentShaderSource = `#version 300 es
 		float ewX = v_TexturePosition.x + x / ${WORLD_WIDTH}.0;
 		float ewY = v_TexturePosition.y + y / ${WORLD_WIDTH}.0;
 		
-		ewX = ewX * ${WORLD_WIDTH * WORLD_WIDTH}.0;
-		ewX = floor(ewX);
-		
-		ewY = ewY * ${WORLD_WIDTH * WORLD_WIDTH}.0;
-		ewY = floor(ewY);
-		
-		return vec2(ewX, ewY);
+		vec2 xy = vec2(ewX, ewY);
+		xy = xy * ${WORLD_WIDTH}.0;
+		xy = floor(xy);
+		return xy;
 	}
 	
 	vec2 ew(float x, float y) {
 		vec2 xy = world(x, y);
-		xy = xy / ${WORLD_WIDTH * WORLD_WIDTH}.0;
+		xy = xy / ${WORLD_WIDTH}.0;
 		return xy;
 	}
 	
 	bool isPicked(float x, float y) {
 		vec2 space = ew(x, y);
+		if (space.y >= 1.0) return false;
 		return random(space / (u_time)) < 0.9;
 	}
 	
@@ -171,12 +169,16 @@ var fragmentShaderSource = `#version 300 es
 	
 		float yAbove = 1.0;
 		while (yAbove < ${WORLD_WIDTH}.0) {
+			
+			vec2 space = ew(0.0, yAbove);
+			if (space.y >= 1.0) return false;
+			
 			if (isPicked(0.0, yAbove)) {
 				if (!isPickedInWindow(0.0, yAbove)) {
 					return true;
 				}
 			}
-			else break;
+			else return false;
 			yAbove = yAbove + 2.0;
 		}
 		
@@ -193,12 +195,20 @@ var fragmentShaderSource = `#version 300 es
 	const vec4 EMPTY = vec4(0.0, 0.0, 0.0, 0.0);
 	
 	vec4 getColour(float x, float y) {
+		
 		float ewX = v_TexturePosition.x + x / ${WORLD_WIDTH}.0;
 		float ewY = v_TexturePosition.y + y / ${WORLD_WIDTH}.0;
+		
+		/*ewX = ewX * ${WORLD_WIDTH * WORLD_WIDTH}.0;
+		ewX = floor(ewX);
+		ewX = ewX / ${WORLD_WIDTH * WORLD_WIDTH}.0;
+		
+		ewY = ewY * ${WORLD_WIDTH * WORLD_WIDTH}.0;
+		ewY = floor(ewY);
+		ewY = ewY / ${WORLD_WIDTH * WORLD_WIDTH}.0;*/
+		
 		vec2 xy = vec2(ewX, ewY);
-		xy = xy * ${WORLD_WIDTH * WORLD_WIDTH}.0;
-		xy = floor(xy);
-		xy = xy / ${WORLD_WIDTH * WORLD_WIDTH}.0;
+		
 		return texture(u_Texture, xy);
 	}
 	
@@ -206,30 +216,37 @@ var fragmentShaderSource = `#version 300 es
 		
 		// Am I in someone else's event window??
 		if (isInWindow(0.0, 0.0)) {
+			
 			vec4 element = getColour(0.0, 0.0);
 			vec4 elementAbove = getColour(0.0, 1.0);
-			if (/*element == EMPTY && */elementAbove == SAND) {
+			if (element == EMPTY && elementAbove == SAND) {
 				colour = SAND;
 				return;
 			}
 			colour = getColour(0.0, 0.0);
+			
+			//colour = RED;
 			return;
 		}
 		
 		// Am I an origin??
-		/*if (isPicked(0.0, 0.0)) {
+		if (isPicked(0.0, 0.0)) {
 			vec4 element = getColour(0.0, 0.0);
 			vec4 elementBelow = getColour(0.0, -1.0);
 			if (element == SAND && elementBelow == EMPTY) {
 				colour = EMPTY;
+				//colour = getColour(0.0, 0.0);
 				return;
 			}
 			colour = getColour(0.0, 0.0);
+			
+			//colour = BLUE;
 			return;
-		}*/
+		}
 		
 		// Then I'm not involved in any events :(
 		colour = getColour(0.0, 0.0);
+		//colour = BLANK;
 		
 	}
 `
@@ -317,7 +334,14 @@ gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex
 //======//
 let currentDirection = true
 let time = 0
+let paused = false
+on.keydown((e) => {
+	if (e.key === " ") paused = !paused
+})
+
 const draw = async () => {
+
+	if (paused) return requestAnimationFrame(draw)
 	
 	let sourceTexture
 	let frameBuffer
@@ -369,7 +393,7 @@ const draw = async () => {
 	
 	time++
 	if (time > 255) time = 0
-	//await wait(250)
+	//await wait(500)
 	requestAnimationFrame(draw)
 }
 
