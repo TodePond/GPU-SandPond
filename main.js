@@ -392,25 +392,47 @@ requestAnimationFrame(draw)
 //=========//
 let dropX
 let dropY
+let DROPPER_SIZE = 3
 
 const dropIfPossible = () => {
 	if (!Mouse.down) return
 	if (dropX === undefined) return
-		
+	
 	drop(dropX, dropY)
 }
 
-const drop = (x, y) => {
+const drop = (dropX, dropY) => {
+
+	const coords = []
+	
+	for (let x = -DROPPER_SIZE; x <= DROPPER_SIZE; x++) {
+		for (let y = -DROPPER_SIZE; y <= DROPPER_SIZE; y++) {
+			const finalX = dropX+x
+			const finalY = dropY+y
+			if (finalX >= WORLD_WIDTH) continue
+			if (finalY >= WORLD_WIDTH) continue
+			if (finalX < 0) continue
+			if (finalY < 0) continue
+			coords.push([finalX, finalY])
+		}
+	}
+	
+	dropAtom(coords)
+	
+}
+
+const dropAtom = (coords) => {
 	const pixels = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH * 4)
 	gl.bindFramebuffer(gl.FRAMEBUFFER, fb2)
 	gl.readPixels(0, 0, WORLD_WIDTH, WORLD_WIDTH, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
 	
-	const id = (y * WORLD_WIDTH * 4) + x * 4
-	
-	pixels[id] = 255
-	pixels[id+1] = 204
-	pixels[id+2] = 0
-	pixels[id+3] = 255
+	for (const [x, y] of coords) {
+		const id = (y * WORLD_WIDTH * 4) + x * 4
+		pixels[id] = 255
+		pixels[id+1] = 204
+		pixels[id+2] = 0
+		pixels[id+3] = 255
+	}
 	
 	currentDirection = true
 	gl.bindTexture(gl.TEXTURE_2D, texture1)
@@ -420,6 +442,18 @@ const drop = (x, y) => {
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
 }
 
+on.mousewheel((e) => {
+	if (Keyboard.Shift) {
+		if (e.deltaY < 0) {
+			DROPPER_SIZE++
+			if (DROPPER_SIZE > 10) DROPPER_SIZE = 10
+		}
+		else if (e.deltaY > 0) {
+			DROPPER_SIZE--
+			if (DROPPER_SIZE < 0) DROPPER_SIZE = 0
+		}
+	}
+})
 
 canvas.on.mousemove((e) => {
 	dropX = Math.round((e.offsetX / canvas.clientWidth) * WORLD_WIDTH)
