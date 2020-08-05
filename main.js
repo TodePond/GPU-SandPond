@@ -380,6 +380,8 @@ const draw = async () => {
 	time++
 	if (time > 255) time = 0
 	//await wait(500)
+	
+	if (dropIfPossible !== undefined) dropIfPossible()
 	requestAnimationFrame(draw)
 }
 
@@ -388,10 +390,17 @@ requestAnimationFrame(draw)
 //=========//
 // Dropper //
 //=========//
-canvas.on.mousedown((e) => {
-	const x = Math.round((e.offsetX / canvas.clientWidth) * WORLD_WIDTH)
-	const y = WORLD_WIDTH - Math.round((e.offsetY / canvas.clientHeight) * WORLD_WIDTH)
-	
+let dropX
+let dropY
+
+const dropIfPossible = () => {
+	if (!Mouse.down) return
+	if (dropX === undefined) return
+		
+	drop(dropX, dropY)
+}
+
+const drop = (x, y) => {
 	const pixels = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH * 4)
 	gl.bindFramebuffer(gl.FRAMEBUFFER, fb2)
 	gl.readPixels(0, 0, WORLD_WIDTH, WORLD_WIDTH, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
@@ -409,7 +418,12 @@ canvas.on.mousedown((e) => {
 	
 	gl.bindTexture(gl.TEXTURE_2D, texture2)
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
-	
+}
+
+
+canvas.on.mousemove((e) => {
+	dropX = Math.round((e.offsetX / canvas.clientWidth) * WORLD_WIDTH)
+	dropY = WORLD_WIDTH - Math.round((e.offsetY / canvas.clientHeight) * WORLD_WIDTH)
 })
 
 
