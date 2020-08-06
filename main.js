@@ -566,6 +566,7 @@ on.keydown((e) => {
 
 let prevT = 0
 let cummT = 0
+const EVENT_CYCLE_COUNT = 9
 const draw = async () => {
 		
 	gl.uniform1ui(dropperDownLocation, Mouse.down || Touches.length > 0)
@@ -576,7 +577,6 @@ const draw = async () => {
 	previousX = dropperX
 	previousY = dropperY
 	
-	gl.uniform1f(timeLocation, time)
 	
 	/*let cont = true
 	if (EVENT_WINDOW) {
@@ -587,28 +587,38 @@ const draw = async () => {
 	let sourceTexture
 	let frameBuffer
 	let targetTexture
-	if (currentDirection === true && !paused) {
-		sourceTexture = texture1
-		frameBuffer = fb2
-		targetTexture = texture2
-		targetFrameBuffer = fb1
-		if (!paused) currentDirection = false
-	}
-	else {
-		sourceTexture = texture2
-		frameBuffer = fb1
-		targetTexture = texture1
-		targetFrameBuffer = fb2
-		if (!paused) currentDirection = true
-	}
-	if (!paused) {
-		// Target
-		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer)
-		gl.bindTexture(gl.TEXTURE_2D, sourceTexture)
-		gl.uniform1ui(isPostLocation, 0)
+	
+	for (let i = 0; i < EVENT_CYCLE_COUNT; i++) {
+	
+		gl.uniform1f(timeLocation, time)
+	
+		if (currentDirection === true && !paused) {
+			sourceTexture = texture1
+			frameBuffer = fb2
+			targetTexture = texture2
+			targetFrameBuffer = fb1
+			if (!paused) currentDirection = false
+		}
+		else {
+			sourceTexture = texture2
+			frameBuffer = fb1
+			targetTexture = texture1
+			targetFrameBuffer = fb2
+			if (!paused) currentDirection = true
+		}
 		
-		gl.viewport(0, 0, WORLD_WIDTH, WORLD_WIDTH)
-		gl.drawArrays(gl.TRIANGLES, 0, 6)
+		if (!paused) {
+			// Target
+			gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer)
+			gl.bindTexture(gl.TEXTURE_2D, sourceTexture)
+			gl.uniform1ui(isPostLocation, 0)
+			
+			gl.viewport(0, 0, WORLD_WIDTH, WORLD_WIDTH)
+			gl.drawArrays(gl.TRIANGLES, 0, 6)
+		}
+		
+		time += 1
+		if (time >= 9) time = 0
 	}
 	
 	// Canvas
@@ -619,11 +629,7 @@ const draw = async () => {
 	gl.viewport(0, 0, canvas.clientWidth, canvas.clientWidth)
 	gl.drawArrays(gl.TRIANGLES, 0, 6)
 	
-	time += 1
-	if (time >= 9) time = 0
 	if (EVENT_WINDOW) await wait(500)
-	
-	//if (dropIfPossible !== undefined) dropIfPossible()
 	requestAnimationFrame(draw)
 }
 
