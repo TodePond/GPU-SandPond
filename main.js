@@ -664,13 +664,15 @@ canvas.on.mousemove((e) => {
 	dropperY = WORLD_WIDTH - Math.round((e.offsetY / canvas.clientHeight) * WORLD_WIDTH)
 })
 
-canvas.onPassive.touchstart(e => {
+canvas.on.touchstart(e => {
 	dropperX = Math.round(((e.changedTouches[0].clientX - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
 	dropperY = WORLD_WIDTH - Math.round(((e.changedTouches[0].clientY - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
+	e.preventDefault()
 })
 
-canvas.onPassive.touchmove(e => {
+canvas.on.touchmove(e => {
 	dropperX = Math.round(((e.changedTouches[0].clientX - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
 	dropperY = WORLD_WIDTH - Math.round(((e.changedTouches[0].clientY - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
+	e.preventDefault()
 })
 
