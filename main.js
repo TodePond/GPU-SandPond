@@ -7,7 +7,7 @@ const WORLD_WIDTH = WORLD_WIDTH_PARAM !== null? WORLD_WIDTH_PARAM.as(Number) : 3
 const SPACE_COUNT = WORLD_WIDTH * WORLD_WIDTH
 
 const RANDOM_MODE_PARAM = urlParams.get("r")
-const RANDOM_MODE = RANDOM_MODE_PARAM !== null? RANDOM_MODE_PARAM.as(Number) : 0
+const RANDOM_MODE = RANDOM_MODE_PARAM !== null? RANDOM_MODE_PARAM.as(Number) : 1
 
 const EVENT_WINDOW_PARAM = urlParams.get("e")
 const EVENT_WINDOW = EVENT_WINDOW_PARAM !== null? EVENT_WINDOW_PARAM.as(Number) : 0
@@ -172,8 +172,8 @@ const fragmentShaderSource = `#version 300 es
 		if (space.y > 1.0) return false;
 		
 		${(() => {
-			if (RANDOM_MODE === 0) return "return random(space / (u_time)) < 0.9;"
-			if (RANDOM_MODE === 1) return `
+			if (RANDOM_MODE === 1) return "return random(space / (u_time)) < 0.9;"
+			if (RANDOM_MODE === 0) return `
 				float tick = round(u_time * 255.0);
 				float offset = 0.0;
 				if (mod(tick, 2.0) < 1.0) offset = 1.0;
