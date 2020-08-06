@@ -23,6 +23,7 @@ const makeCanvas = () => {
 	const style = `
 		background-color: rgb(47, 51, 61);
 		margin: ${CANVAS_MARGIN}px;
+		cursor: none;
 	`
 	const canvas = HTML `<canvas style="${style}"></canvas>`
 	return canvas
@@ -138,7 +139,11 @@ const fragmentShaderSource = `#version 300 es
 	in vec2 v_TexturePosition;
 	
 	uniform sampler2D u_Texture;
-	uniform bool u_isTarget;
+	uniform bool u_isPost;
+	uniform vec2 u_dropperPosition;
+	uniform vec2 u_dropperPreviousPosition;
+	uniform bool u_dropperDown;
+	uniform float u_dropperWidth;
 	uniform float u_time;
 	
 	out vec4 colour;
@@ -158,6 +163,7 @@ const fragmentShaderSource = `#version 300 es
 		vec2 xy = vec2(ewX, ewY);
 		xy = xy * ${WORLD_WIDTH}.0;
 		xy = floor(xy);
+		xy = xy + 0.5 / ${WORLD_WIDTH}.0;
 		return xy;
 	}
 	
@@ -222,20 +228,86 @@ const fragmentShaderSource = `#version 300 es
 		float ewY = v_TexturePosition.y + y / ${WORLD_WIDTH}.0;
 		
 		/*ewX = ewX * ${WORLD_WIDTH * WORLD_WIDTH}.0;
-		ewX = round(ewX);
+		ewX = floor(ewX);
 		ewX = ewX / ${WORLD_WIDTH * WORLD_WIDTH}.0;
+		ewX = ewX + 0.5 / ${WORLD_WIDTH * WORLD_WIDTH}.0;
 		
 		ewY = ewY * ${WORLD_WIDTH * WORLD_WIDTH}.0;
-		ewY = round(ewY);
-		ewY = ewY / ${WORLD_WIDTH * WORLD_WIDTH}.0;*/
+		ewY = floor(ewY);
+		ewY = ewY / ${WORLD_WIDTH * WORLD_WIDTH}.0;
+		ewY = ewY + 0.5 / ${WORLD_WIDTH * WORLD_WIDTH}.0;*/
 		
 		vec2 xy = vec2(ewX, ewY);
 		
 		return texture(u_Texture, xy);
 	}
 	
-	void main() {
+	
+	bool isInDropper() {
+		vec2 space = ew(0.0, 0.0);
 		
+		vec2 drop = u_dropperPosition;
+		vec2 previous = u_dropperPreviousPosition;
+		
+		vec2 diff = drop - previous;
+		vec2 abs = abs(diff);
+		
+		float largest = max(abs.x, abs.y);
+		vec2 ratio = abs / largest;
+		vec2 way = sign(diff);
+		vec2 inc = way * ratio;
+		
+		float i = 0.0;
+		while (i < 1.0) {
+			if (i >= largest) break;
+			vec2 new = drop - inc * i;
+			vec2 final = new + space.x;
+			
+			vec2 debug = new;
+			if (space.x < debug.x + u_dropperWidth) {
+				if (space.x > debug.x - u_dropperWidth) {
+					if (space.y < debug.y + u_dropperWidth) {
+						if (space.y > debug.y - u_dropperWidth) {
+							return true;
+						}
+					}
+				}
+			}
+			i = i + 1.0 / ${WORLD_WIDTH}.0;
+		}
+		
+		
+		if (space.x < u_dropperPosition.x + u_dropperWidth) {
+			if (space.x > u_dropperPosition.x - u_dropperWidth) {
+				if (space.y < u_dropperPosition.y + u_dropperWidth) {
+					if (space.y > u_dropperPosition.y - u_dropperWidth) {
+						return true;
+					}
+				}
+			}
+		}
+		
+		if (space.x < u_dropperPreviousPosition.x + u_dropperWidth) {
+			if (space.x > u_dropperPreviousPosition.x - u_dropperWidth) {
+				if (space.y < u_dropperPreviousPosition.y + u_dropperWidth) {
+					if (space.y > u_dropperPreviousPosition.y - u_dropperWidth) {
+						return true;
+					}
+				}
+			}
+		}
+		
+		return false;
+	}
+	
+	void process() {
+	
+		// Am I being dropped to?
+		if (u_dropperDown && isInDropper()) {
+			colour = SAND;
+			return;
+		}
+	
 		// Am I in someone else's event window??
 		if (isInWindow(0.0, 0.0)) {
 			
@@ -257,7 +329,6 @@ const fragmentShaderSource = `#version 300 es
 			vec4 elementBelow = getColour(0.0, -1.0);
 			if (element == SAND && elementBelow == EMPTY) {
 				colour = EMPTY;
-				//colour = getColour(0.0, 0.0);
 				return;
 			}
 			colour = getColour(0.0, 0.0);
@@ -269,7 +340,24 @@ const fragmentShaderSource = `#version 300 es
 		// Then I'm not involved in any events :(
 		colour = getColour(0.0, 0.0);
 		${EVENT_WINDOW == 1? "colour = BLANK;" : ""}
-		
+	}
+	
+	void postProcess() {
+		if (isInDropper()) {
+			colour = vec4(0.0, 1.0, 0.5, 1.0);
+		}
+		else {
+			colour = texture(u_Texture, v_TexturePosition);
+		}
+	}
+	
+	void main() {
+		if (!u_isPost) {
+			process();
+		}
+		else {
+			postProcess();
+		}
 	}
 `
 
@@ -289,11 +377,20 @@ on.resize(() => {
 const program = createProgram(gl, vertexShaderSource, fragmentShaderSource)
 gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
 
-const isTargetLocation = gl.getUniformLocation(program, "u_isTarget")
-gl.uniform1ui(isTargetLocation, 1)
+const isPostLocation = gl.getUniformLocation(program, "u_isPost")
+gl.uniform1ui(isPostLocation, 1)
 
-const timeTurnLocation = gl.getUniformLocation(program, "u_timeTurn")
-gl.uniform1ui(timeTurnLocation, 0)
+const dropperDownLocation = gl.getUniformLocation(program, "u_dropperDown")
+gl.uniform1ui(dropperDownLocation, 0)
+
+const dropperPositionLocation = gl.getUniformLocation(program, "u_dropperPosition")
+gl.uniform2f(dropperPositionLocation, 0, 0)
+
+const dropperPreviousPositionLocation = gl.getUniformLocation(program, "u_dropperPreviousPosition")
+gl.uniform2f(dropperPreviousPositionLocation, 0, 0)
+
+const dropperWidthLocation = gl.getUniformLocation(program, "u_dropperWidth")
+gl.uniform1f(dropperWidthLocation, 1 / WORLD_WIDTH)
 
 const timeLocation = gl.getUniformLocation(program, "u_time")
 gl.uniform1f(timeLocation, 0)
@@ -367,40 +464,50 @@ on.keydown((e) => {
 })
 
 const draw = async () => {
-
-	if (paused) return requestAnimationFrame(draw)
+	
+	gl.uniform1ui(dropperDownLocation, Mouse.down || Touches.length > 0)
+	gl.uniform2f(dropperPositionLocation, dropperX / WORLD_WIDTH, dropperY / WORLD_WIDTH)
+	gl.uniform2f(dropperPreviousPositionLocation, previousX / WORLD_WIDTH, previousY / WORLD_WIDTH)
+	gl.uniform1f(dropperWidthLocation, DROPPER_SIZE / WORLD_WIDTH)
+	
+	previousX = dropperX
+	previousY = dropperY
+	
+	gl.uniform1f(timeLocation, time)
 	
 	let sourceTexture
 	let frameBuffer
 	let targetTexture
-	if (currentDirection === true) {
+	if (currentDirection === true && !paused) {
 		sourceTexture = texture1
 		frameBuffer = fb2
 		targetTexture = texture2
-		currentDirection = false
+		targetFrameBuffer = fb1
+		if (!paused) currentDirection = false
 	}
 	else {
 		sourceTexture = texture2
 		frameBuffer = fb1
 		targetTexture = texture1
-		currentDirection = true
+		targetFrameBuffer = fb2
+		if (!paused) currentDirection = true
 	}
+	 
 	
-	gl.uniform1f(timeLocation, time)
-	gl.uniform1f(timeLocation, time)
-	
-	// Target
-	gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer)
-	gl.bindTexture(gl.TEXTURE_2D, sourceTexture)
-	gl.uniform1ui(isTargetLocation, 1)
-	
-	gl.viewport(0, 0, WORLD_WIDTH, WORLD_WIDTH)
-	gl.drawArrays(gl.TRIANGLES, 0, 6)
+	if (!paused) {
+		// Target
+		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer)
+		gl.bindTexture(gl.TEXTURE_2D, sourceTexture)
+		gl.uniform1ui(isPostLocation, 0)
+		
+		gl.viewport(0, 0, WORLD_WIDTH, WORLD_WIDTH)
+		gl.drawArrays(gl.TRIANGLES, 0, 6)
+	}
 	
 	// Canvas
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 	gl.bindTexture(gl.TEXTURE_2D, targetTexture)
-	gl.uniform1ui(isTargetLocation, 0)
+	gl.uniform1ui(isPostLocation, 1)
 	
 	gl.viewport(0, 0, canvas.clientWidth, canvas.clientWidth)
 	gl.drawArrays(gl.TRIANGLES, 0, 6)
@@ -409,7 +516,7 @@ const draw = async () => {
 	if (time > 255) time = 0
 	if (EVENT_WINDOW) await wait(500)
 	
-	if (dropIfPossible !== undefined) dropIfPossible()
+	//if (dropIfPossible !== undefined) dropIfPossible()
 	requestAnimationFrame(draw)
 }
 
@@ -420,102 +527,21 @@ requestAnimationFrame(draw)
 //=========//
 let dropperX
 let dropperY
-let DROPPER_SIZE = 2
+let DROPPER_SIZE = 1
 
 let previousDown = false
-let previousX = undefined
-let previousY = undefined
-
-const dropIfPossible = () => {
-	if (!Mouse.down && Touches.length <= 0) {
-		previousDown = false
-		return
-	}
-	
-	if (dropperX === undefined) return
-	
-	drop(dropperX, dropperY)
-	
-	previousDown = true
-	previousX = dropperX
-	previousY = dropperY
-}
-
-const drop = (dropX, dropY) => {
-
-	const coords = []
-	
-	// Trail
-	if (previousDown) {
-		const xDiff = dropX - previousX
-		const yDiff = dropY - previousY
-		
-		const xAbs = Math.abs(xDiff)
-		const yAbs = Math.abs(yDiff)
-		
-		let largest = Math.max(xAbs, yAbs)
-		if (largest == 0) largest = 0.00001
-		
-		const xRatio = (xAbs / largest)
-		const yRatio = yAbs / largest
-		
-		const xWay = Math.sign(xDiff)
-		const yWay = Math.sign(yDiff)
-		
-		const xInc = xWay * xRatio
-		const yInc = yWay * yRatio
-		
-		for (let i = 0; i < largest; i++) {
-			const xNew = Math.round(dropX - xInc * i)
-			const yNew = Math.round(dropY - yInc * i)
-			for (let x = -DROPPER_SIZE; x <= DROPPER_SIZE; x++) {
-				for (let y = -DROPPER_SIZE; y <= DROPPER_SIZE; y++) {
-					const finalX = xNew+x
-					const finalY = yNew+y
-					if (finalX >= WORLD_WIDTH) continue
-					if (finalY >= WORLD_WIDTH) continue
-					if (finalX < 0) continue
-					if (finalY < 0) continue
-					coords.push([finalX, finalY])
-				}
-			}
-		}
-	}
-	
-	dropAtom(coords)
-	
-}
-
-const dropAtom = (coords) => {
-	const pixels = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH * 4)
-	gl.bindFramebuffer(gl.FRAMEBUFFER, fb2)
-	gl.readPixels(0, 0, WORLD_WIDTH, WORLD_WIDTH, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
-	
-	for (const [x, y] of coords) {
-		const id = (y * WORLD_WIDTH * 4) + x * 4
-		pixels[id] = 255
-		pixels[id+1] = 204
-		pixels[id+2] = 0
-		pixels[id+3] = 255
-	}
-	
-	currentDirection = true
-	gl.bindTexture(gl.TEXTURE_2D, texture1)
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
-	
-	gl.bindTexture(gl.TEXTURE_2D, texture2)
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
-}
+let previousX
+let previousY
 
 on.mousewheel((e) => {
 	if (Keyboard.Shift) {
 		if (e.deltaY < 0) {
 			DROPPER_SIZE++
-			if (DROPPER_SIZE > 10) DROPPER_SIZE = 10
+			//if (DROPPER_SIZE > 15) DROPPER_SIZE = 15
 		}
 		else if (e.deltaY > 0) {
 			DROPPER_SIZE--
-			if (DROPPER_SIZE < 0) DROPPER_SIZE = 0
+			if (DROPPER_SIZE < 1) DROPPER_SIZE = 1
 		}
 	}
 })
