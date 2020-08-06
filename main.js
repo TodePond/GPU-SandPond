@@ -300,9 +300,11 @@ const fragmentShaderSource = `#version 300 es
 		return false;
 	}
 	
+	// Site Numbers
 	const float ORIGIN = 0.0;
 	const float BELOW = 1.0;
 	const float BELOW_RIGHT = 2.0;
+	const float BELOW_LEFT = 3.0;
 	
 	void process() {
 	
@@ -340,6 +342,7 @@ const fragmentShaderSource = `#version 300 es
 		if (isPicked(0.0, 0.0)) site = ORIGIN;
 		else if (isPicked(0.0, 1.0)) site = BELOW;
 		else if (isPicked(-1.0, 1.0)) site = BELOW_RIGHT;
+		else if (isPicked(1.0, 1.0)) site = BELOW_LEFT;
 		
 		// Quit if I am not important :(
 		else {
@@ -353,21 +356,31 @@ const fragmentShaderSource = `#version 300 es
 		vec4 elementOrigin;
 		vec4 elementBelow;
 		vec4 elementBelowRight;
+		vec4 elementBelowLeft;
 		
 		if (site == ORIGIN) {
 			elementOrigin = getColour(0.0, 0.0);
 			elementBelow = getColour(0.0, -1.0);
 			elementBelowRight = getColour(1.0, -1.0);
+			elementBelowLeft = getColour(-1.0, -1.0);
 		}
 		else if (site == BELOW) {
 			elementOrigin = getColour(0.0, 1.0);
 			elementBelow = getColour(0.0, 0.0);
 			elementBelowRight = getColour(1.0, 0.0);
+			elementBelowLeft = getColour(-1.0, 0.0);
 		}
 		else if (site == BELOW_RIGHT) {
 			elementOrigin = getColour(-1.0, 1.0);
 			elementBelow = getColour(-1.0, 0.0);
 			elementBelowRight = getColour(0.0, 0.0);
+			elementBelowLeft = getColour(-2.0, 0.0);
+		}
+		else if (site == BELOW_LEFT) {
+			elementOrigin = getColour(1.0, 1.0);
+			elementBelow = getColour(1.0, 0.0);
+			elementBelowRight = getColour(2.0, 0.0);
+			elementBelowLeft = getColour(0.0, 0.0);
 		}
 		
 		//==================//
@@ -378,13 +391,23 @@ const fragmentShaderSource = `#version 300 es
 			elementOrigin = EMPTY;
 			elementBelow = SAND;
 			elementBelowRight = elementBelowRight;
+			elementBelowLeft = elementBelowLeft;
 		}
 		
-		// Slide
-		else if (elementOrigin == SAND && elementBelow == SAND && elementBelowRight == EMPTY) {
+		// Slide Right
+		else if (elementOrigin == SAND && elementBelow != EMPTY && elementBelowRight == EMPTY) {
 			elementOrigin = EMPTY;
-			elementBelow = SAND;
+			elementBelow = elementBelow;
 			elementBelowRight = SAND;
+			elementBelowLeft = elementBelowLeft;
+		}
+		
+		// Slide Left
+		else if (elementOrigin == SAND && elementBelow != EMPTY && elementBelowRight != EMPTY && elementBelowLeft == EMPTY) {
+			elementOrigin = EMPTY;
+			elementBelow = elementBelow;
+			elementBelowRight = elementBelowRight;
+			elementBelowLeft = SAND;
 		}
 		
 		// Do Nothing
@@ -392,6 +415,7 @@ const fragmentShaderSource = `#version 300 es
 			elementOrigin = elementOrigin;
 			elementBelow = elementBelow;
 			elementBelowRight = elementBelowRight;
+			elementBelowLeft = elementBelowLeft;
 		}
 		
 		//================//
@@ -407,6 +431,10 @@ const fragmentShaderSource = `#version 300 es
 		}
 		else if (site == BELOW_RIGHT) {
 			colour = elementBelowRight;
+			return;
+		}
+		else if (site == BELOW_LEFT) {
+			colour = elementBelowLeft;
 			return;
 		}
 		
