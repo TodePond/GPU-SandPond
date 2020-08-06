@@ -1,5 +1,20 @@
 const urlParams = new URLSearchParams(window.location.search)
 
+
+const WORLD_WIDTH_PARAM = urlParams.get("w")
+const WORLD_WIDTH = WORLD_WIDTH_PARAM !== null? WORLD_WIDTH_PARAM.as(Number) : 300
+//const WORLD_WIDTH = 16384
+const SPACE_COUNT = WORLD_WIDTH * WORLD_WIDTH
+
+const RANDOM_MODE_PARAM = urlParams.get("r")
+const RANDOM_MODE = RANDOM_MODE_PARAM !== null? RANDOM_MODE_PARAM.as(Number) : 0
+
+const EVENT_WINDOW_PARAM = urlParams.get("e")
+const EVENT_WINDOW = EVENT_WINDOW_PARAM !== null? EVENT_WINDOW_PARAM.as(Number) : 0
+
+const RANDOM_SPAWN_PARAM = urlParams.get("s")
+const RANDOM_SPAWN = RANDOM_SPAWN_PARAM !== null? RANDOM_SPAWN_PARAM.as(Number) : 0
+
 //========//
 // Canvas //
 //========//
@@ -97,10 +112,6 @@ const createBuffer = (bindPoint, hint, data) => {
 //===============//
 // Vertex Shader //
 //===============//
-const WORLD_WIDTH_PARAM = urlParams.get("w")
-const WORLD_WIDTH = WORLD_WIDTH_PARAM !== null? WORLD_WIDTH_PARAM.as(Number) : 300
-//const WORLD_WIDTH = 16384
-const SPACE_COUNT = WORLD_WIDTH * WORLD_WIDTH
 const vertexShaderSource = `#version 300 es
 
 	in vec2 a_TexturePosition;
@@ -120,8 +131,7 @@ const vertexShaderSource = `#version 300 es
 //========================
 //  r
 // gba
-
-var fragmentShaderSource = `#version 300 es
+const fragmentShaderSource = `#version 300 es
 
 	precision highp float;
 	
@@ -159,8 +169,17 @@ var fragmentShaderSource = `#version 300 es
 	
 	bool isPicked(float x, float y) {
 		vec2 space = ew(x, y);
-		if (space.y >= 1.0) return false;
-		return random(space / (u_time)) < 0.9;
+		if (space.y > 1.0) return false;
+		
+		${(() => {
+			if (RANDOM_MODE === 0) return "return random(space / (u_time)) < 0.9;"
+			if (RANDOM_MODE === 1) return `
+				float tick = round(u_time * 255.0);
+				float offset = 0.0;
+				if (mod(tick, 2.0) < 1.0) offset = 1.0;
+				return mod(space.y * ${WORLD_WIDTH}.0 + offset, 2.0) < 1.0;
+			`
+		})()}
 	}
 	
 	bool isPickedInWindow(float x, float y) {
@@ -174,7 +193,7 @@ var fragmentShaderSource = `#version 300 es
 		while (yAbove < ${WORLD_WIDTH}.0) {
 			
 			vec2 space = ew(0.0, yAbove);
-			if (space.y >= 1.0) return false;
+			if (space.y > 1.0) return false;
 			
 			if (isPicked(0.0, yAbove)) {
 				if (!isPickedInWindow(0.0, yAbove)) {
@@ -228,7 +247,7 @@ var fragmentShaderSource = `#version 300 es
 			}
 			colour = getColour(0.0, 0.0);
 			
-			//colour = RED;
+			${EVENT_WINDOW == 1? "colour = RED;" : ""}
 			return;
 		}
 		
@@ -243,13 +262,13 @@ var fragmentShaderSource = `#version 300 es
 			}
 			colour = getColour(0.0, 0.0);
 			
-			//colour = BLUE;
+			${EVENT_WINDOW == 1? "colour = BLUE;" : ""}
 			return;
 		}
 		
 		// Then I'm not involved in any events :(
 		colour = getColour(0.0, 0.0);
-		//colour = BLANK;
+		${EVENT_WINDOW == 1? "colour = BLANK;" : ""}
 		
 	}
 `
@@ -272,6 +291,9 @@ gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
 
 const isTargetLocation = gl.getUniformLocation(program, "u_isTarget")
 gl.uniform1ui(isTargetLocation, 1)
+
+const timeTurnLocation = gl.getUniformLocation(program, "u_timeTurn")
+gl.uniform1ui(timeTurnLocation, 0)
 
 const timeLocation = gl.getUniformLocation(program, "u_time")
 gl.uniform1f(timeLocation, 0)
@@ -296,8 +318,6 @@ gl.vertexAttribPointer(texturePositionLocation, 2, gl.FLOAT, false, 0, 0)
 let texture1 = gl.createTexture()
 gl.bindTexture(gl.TEXTURE_2D, texture1)
 const spaces = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH * 4)
-const RANDOM_SPAWN_PARAM = urlParams.get("s")
-const RANDOM_SPAWN = RANDOM_SPAWN_PARAM !== null? RANDOM_SPAWN_PARAM.as(Number) : 0
 if (RANDOM_SPAWN !== 0) for (let i = 0; i < spaces.length; i += 4) {
 	if (RANDOM_SPAWN == 1) {
 		if (Math.random() < 0.05) {
@@ -367,6 +387,7 @@ const draw = async () => {
 	}
 	
 	gl.uniform1f(timeLocation, time)
+	gl.uniform1f(timeLocation, time)
 	
 	// Target
 	gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer)
@@ -386,7 +407,7 @@ const draw = async () => {
 	
 	time++
 	if (time > 255) time = 0
-	//await wait(500)
+	if (EVENT_WINDOW) await wait(500)
 	
 	if (dropIfPossible !== undefined) dropIfPossible()
 	requestAnimationFrame(draw)
