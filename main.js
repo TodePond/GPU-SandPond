@@ -182,8 +182,8 @@ const fragmentShaderSource = `#version 300 es
 		
 		vec2 space = ew(x, y);
 		
-		if (mod((space.x * ${WORLD_WIDTH}.0) + u_time, 3.0) < 1.0) {
-			if (mod(((space.y * ${WORLD_WIDTH}.0) + u_time / 3.0), 3.0) < 1.0) {
+		if (mod((space.x * ${WORLD_WIDTH}.0) - u_time, 3.0) < 1.0) {
+			if (mod(((space.y * ${WORLD_WIDTH}.0) - u_time / 3.0), 3.0) < 1.0) {
 				return true;
 			}
 		}
