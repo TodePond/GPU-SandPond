@@ -7,7 +7,12 @@ const WORLD_WIDTH = WORLD_WIDTH_PARAM !== null? WORLD_WIDTH_PARAM.as(Number) : 3
 const SPACE_COUNT = WORLD_WIDTH * WORLD_WIDTH
 
 const RANDOM_MODE_PARAM = urlParams.get("r")
-const RANDOM_MODE = RANDOM_MODE_PARAM !== null? RANDOM_MODE_PARAM.as(Number) : 1
+const RANDOM_MODE = RANDOM_MODE_PARAM !== null? RANDOM_MODE_PARAM.as(Number) : 0
+
+if (RANDOM_MODE === 1) {
+	alert(`[SandPond] Sorry, random mode is currently not supported because I'm still working on it (:`)
+	throw new Error(`[SandPond] Sorry, random mode is currently not supported because I'm still working on it (:`)
+}
 
 const EVENT_WINDOW_PARAM = urlParams.get("e")
 const EVENT_WINDOW = EVENT_WINDOW_PARAM !== null? EVENT_WINDOW_PARAM.as(Number) : 0
@@ -174,43 +179,32 @@ const fragmentShaderSource = `#version 300 es
 	}
 	
 	bool isPicked(float x, float y) {
-		vec2 space = ew(x, y);
-		if (space.y > 1.0) return false;
 		
-		${(() => {
-			if (RANDOM_MODE === 1) return "return random(space / (u_time)) < 0.9;"
-			if (RANDOM_MODE === 0) return `
-				float tick = round(u_time * 255.0);
-				float offset = 0.0;
-				if (mod(tick, 2.0) < 1.0) offset = 1.0;
-				return mod(space.y * ${WORLD_WIDTH}.0 + offset, 2.0) < 1.0;
-			`
-		})()}
+		vec2 space = ew(x, y);
+		
+		if (mod((space.x * ${WORLD_WIDTH}.0) + u_time, 3.0) < 1.0) {
+			if (mod(((space.y * ${WORLD_WIDTH}.0) + u_time / 3.0), 3.0) < 1.0) {
+				return true;
+			}
+		}
 	}
 	
 	bool isPickedInWindow(float x, float y) {
-		if (!isPicked(x, y + 1.0)) return false;
-		return true;
+		if (isPicked(1.0, 0.0)) return true;
+		if (isPicked(1.0, 1.0)) return true;
+		if (isPicked(0.0, 1.0)) return true;
+		if (isPicked(-1.0, 1.0)) return true;
+		if (isPicked(-1.0, 0.0)) return true;
+		if (isPicked(-1.0, -1.0)) return true;
+		if (isPicked(0.0, -1.0)) return true;
+		if (isPicked(1.0, -1.0)) return true;
+		return false;
 	}
 	
+	// This is needed for PRNG
+	// For a synchronous approach, this is not needed
 	bool isInWindow(float x, float y) {
-	
-		float yAbove = 1.0;
-		while (yAbove < ${WORLD_WIDTH}.0) {
-			
-			vec2 space = ew(0.0, yAbove);
-			if (space.y > 1.0) return false;
-			
-			if (isPicked(0.0, yAbove)) {
-				if (!isPickedInWindow(0.0, yAbove)) {
-					return true;
-				}
-			}
-			else return false;
-			yAbove = yAbove + 2.0;
-		}
-		
-		return false;
+		return isPickedInWindow(x, y);
 	}
 	
 	const vec4 WHITE = vec4(224.0 / 255.0, 224.0 / 255.0, 224.0 / 255.0, 1.0);
@@ -221,6 +215,7 @@ const fragmentShaderSource = `#version 300 es
 	
 	const vec4 SAND = vec4(1.0, 204.0 / 255.0, 0.0, 1.0);
 	const vec4 EMPTY = vec4(0.0, 0.0, 0.0, 0.0);
+	const vec4 VOID = vec4(1.0, 1.0, 1.0, 0.0);
 	
 	vec4 getColour(float x, float y) {
 		
@@ -238,6 +233,11 @@ const fragmentShaderSource = `#version 300 es
 		ewY = ewY + 0.5 / ${WORLD_WIDTH * WORLD_WIDTH}.0;*/
 		
 		vec2 xy = vec2(ewX, ewY);
+		
+		if (xy.y < 0.0) return VOID;
+		if (xy.y > 1.0) return VOID;
+		if (xy.x < 0.0) return VOID;
+		if (xy.x > 1.0) return VOID;
 		
 		return texture(u_Texture, xy);
 	}
@@ -300,46 +300,119 @@ const fragmentShaderSource = `#version 300 es
 		return false;
 	}
 	
+	const float ORIGIN = 0.0;
+	const float BELOW = 1.0;
+	const float BELOW_RIGHT = 2.0;
+	
 	void process() {
+	
+		${(() => {
+			if (!EVENT_WINDOW) return ""
+			return `
+				// Am I in someone else's event window??
+				if (isInWindow(0.0, 0.0)) {
+					colour = BLUE;
+					return;
+				}
+				
+				// Am I an origin??
+				if (isPicked(0.0, 0.0)) {
+					colour = RED;
+					return;
+				}
+				
+				colour = BLANK;
+				return;
+			`
+		})()}
 	
 		// Am I being dropped to?
 		if (u_dropperDown && isInDropper()) {
 			colour = SAND;
 			return;
 		}
-	
-		// Am I in someone else's event window??
-		if (isInWindow(0.0, 0.0)) {
-			
-			vec4 element = getColour(0.0, 0.0);
-			vec4 elementAbove = getColour(0.0, 1.0);
-			if (element == EMPTY && elementAbove == SAND) {
-				colour = SAND;
-				return;
-			}
+		
+		//=================//
+		// What site am I? //
+		//=================//
+		float site;
+		
+		if (isPicked(0.0, 0.0)) site = ORIGIN;
+		else if (isPicked(0.0, 1.0)) site = BELOW;
+		else if (isPicked(-1.0, 1.0)) site = BELOW_RIGHT;
+		
+		// Quit if I am not important :(
+		else {
 			colour = getColour(0.0, 0.0);
-			
-			${EVENT_WINDOW == 1? "colour = RED;" : ""}
 			return;
 		}
 		
-		// Am I an origin??
-		if (isPicked(0.0, 0.0)) {
-			vec4 element = getColour(0.0, 0.0);
-			vec4 elementBelow = getColour(0.0, -1.0);
-			if (element == SAND && elementBelow == EMPTY) {
-				colour = EMPTY;
-				return;
-			}
-			colour = getColour(0.0, 0.0);
-			
-			${EVENT_WINDOW == 1? "colour = BLUE;" : ""}
+		//=========================//
+		// What do I want to read? //
+		//=========================//
+		vec4 elementOrigin;
+		vec4 elementBelow;
+		vec4 elementBelowRight;
+		
+		if (site == ORIGIN) {
+			elementOrigin = getColour(0.0, 0.0);
+			elementBelow = getColour(0.0, -1.0);
+			elementBelowRight = getColour(1.0, -1.0);
+		}
+		else if (site == BELOW) {
+			elementOrigin = getColour(0.0, 1.0);
+			elementBelow = getColour(0.0, 0.0);
+			elementBelowRight = getColour(1.0, 0.0);
+		}
+		else if (site == BELOW_RIGHT) {
+			elementOrigin = getColour(-1.0, 1.0);
+			elementBelow = getColour(-1.0, 0.0);
+			elementBelowRight = getColour(0.0, 0.0);
+		}
+		
+		//==================//
+		// How do I behave? //
+		//==================//
+		// Fall
+		if (elementOrigin == SAND && elementBelow == EMPTY) {
+			elementOrigin = EMPTY;
+			elementBelow = SAND;
+			elementBelowRight = elementBelowRight;
+		}
+		
+		// Slide
+		else if (elementOrigin == SAND && elementBelow == SAND && elementBelowRight == EMPTY) {
+			elementOrigin = EMPTY;
+			elementBelow = SAND;
+			elementBelowRight = SAND;
+		}
+		
+		// Do Nothing
+		else {
+			elementOrigin = elementOrigin;
+			elementBelow = elementBelow;
+			elementBelowRight = elementBelowRight;
+		}
+		
+		//================//
+		// Apply changes! //
+		//================//
+		if (site == ORIGIN) {
+			colour = elementOrigin;
+			return;
+		}
+		else if (site == BELOW) {
+			colour = elementBelow;
+			return;
+		}
+		else if (site == BELOW_RIGHT) {
+			colour = elementBelowRight;
 			return;
 		}
 		
-		// Then I'm not involved in any events :(
-		colour = getColour(0.0, 0.0);
-		${EVENT_WINDOW == 1? "colour = BLANK;" : ""}
+		// This should be inaccessible
+		// If you see red on your screen... that means there's an issue
+		colour = RED;
 	}
 	
 	void postProcess() {
@@ -463,8 +536,10 @@ on.keydown((e) => {
 	if (e.key === " ") paused = !paused
 })
 
+let prevT = 0
+let cummT = 0
 const draw = async () => {
-	
+		
 	gl.uniform1ui(dropperDownLocation, Mouse.down || Touches.length > 0)
 	gl.uniform2f(dropperPositionLocation, dropperX / WORLD_WIDTH, dropperY / WORLD_WIDTH)
 	gl.uniform2f(dropperPreviousPositionLocation, previousX / WORLD_WIDTH, previousY / WORLD_WIDTH)
@@ -474,6 +549,12 @@ const draw = async () => {
 	previousY = dropperY
 	
 	gl.uniform1f(timeLocation, time)
+	
+	/*let cont = true
+	if (EVENT_WINDOW) {
+		if (cummT >= 500) cummT = 0
+		else cont = false
+	}*/
 	
 	let sourceTexture
 	let frameBuffer
@@ -492,8 +573,6 @@ const draw = async () => {
 		targetFrameBuffer = fb2
 		if (!paused) currentDirection = true
 	}
-	 
-	
 	if (!paused) {
 		// Target
 		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer)
@@ -512,8 +591,8 @@ const draw = async () => {
 	gl.viewport(0, 0, canvas.clientWidth, canvas.clientWidth)
 	gl.drawArrays(gl.TRIANGLES, 0, 6)
 	
-	time++
-	if (time > 255) time = 0
+	time += 1
+	if (time >= 9) time = 0
 	if (EVENT_WINDOW) await wait(500)
 	
 	//if (dropIfPossible !== undefined) dropIfPossible()
