@@ -1,3 +1,4 @@
+const urlParams = new URLSearchParams(window.location.search)
 
 //========//
 // Canvas //
@@ -96,8 +97,10 @@ const createBuffer = (bindPoint, hint, data) => {
 //===============//
 // Vertex Shader //
 //===============//
-const WORLD_WIDTH = 300
+const WORLD_WIDTH_PARAM = urlParams.get("w")
+const WORLD_WIDTH = WORLD_WIDTH_PARAM !== null? WORLD_WIDTH_PARAM.as(Number) : 300
 //const WORLD_WIDTH = 16384
+const SPACE_COUNT = WORLD_WIDTH * WORLD_WIDTH
 const vertexShaderSource = `#version 300 es
 
 	in vec2 a_TexturePosition;
@@ -293,19 +296,23 @@ gl.vertexAttribPointer(texturePositionLocation, 2, gl.FLOAT, false, 0, 0)
 let texture1 = gl.createTexture()
 gl.bindTexture(gl.TEXTURE_2D, texture1)
 const spaces = new Uint8Array(WORLD_WIDTH * WORLD_WIDTH * 4)
-for (let i = 0; i < spaces.length; i += 4) {
-	/*if (Math.random() < 0.05) {
-		spaces[i] = 255
-		spaces[i+1] = 204
-		spaces[i+3] = 255
-	}*/
-	//if (i === 15) spaces[i] = 255
-	/*if (i === Math.floor(WORLD_WIDTH * WORLD_WIDTH * 4 / 2) + WORLD_WIDTH * 4/2) {
-		spaces[i] = 255
-		spaces[i+1] = 204
-		spaces[i+3] = 255
-	}*/
-	//if (Math.random() < 0.000001) spaces[i] = 255
+const RANDOM_SPAWN_PARAM = urlParams.get("s")
+const RANDOM_SPAWN = RANDOM_SPAWN_PARAM !== null? RANDOM_SPAWN_PARAM.as(Number) : 0
+if (RANDOM_SPAWN !== 0) for (let i = 0; i < spaces.length; i += 4) {
+	if (RANDOM_SPAWN == 1) {
+		if (Math.random() < 0.05) {
+			spaces[i] = 255
+			spaces[i+1] = 204
+			spaces[i+3] = 255
+		}
+	}
+	else if (RANDOM_SPAWN == 2) {
+		if (i === Math.floor(WORLD_WIDTH * WORLD_WIDTH * 4 / 2) + WORLD_WIDTH * 4/2) {
+			spaces[i] = 255
+			spaces[i+1] = 204
+			spaces[i+3] = 255
+		}
+	}
 }
 gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RGBA, gl.UNSIGNED_BYTE, spaces)
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST )
