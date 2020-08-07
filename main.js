@@ -182,7 +182,10 @@ const fragmentShaderSource = `#version 300 es
 		
 		vec2 space = ew(x, y);
 		
-		if (mod((space.x * ${WORLD_WIDTH}.0) - u_time, 3.0) < 1.0) {
+		float xDirection = 1.0;
+		if (mod(u_time, 2.0) > 1.0) xDirection = -xDirection;
+		
+		if (mod((space.x * ${WORLD_WIDTH}.0) + u_time, 3.0) < 1.0) {
 			if (mod(((space.y * ${WORLD_WIDTH}.0) - u_time / 3.0), 3.0) < 1.0) {
 				return true;
 			}
@@ -218,7 +221,7 @@ const fragmentShaderSource = `#version 300 es
 	const vec4 SAND = vec4(1.0, 204.0 / 255.0, 0.0, 1.0);
 	const vec4 EMPTY = vec4(0.0, 0.0, 0.0, 0.0);
 	const vec4 VOID = vec4(1.0, 1.0, 1.0, 0.0);
-	const vec4 WATER = BLUE;
+	const vec4 WATER = vec4(0.0, 0.6, 1.0, 1.0);
 	const vec4 STATIC = vec4(0.5, 0.5, 0.5, 1.0);
 	
 	vec4 getColour(float x, float y) {
@@ -312,12 +315,18 @@ const fragmentShaderSource = `#version 300 es
 	}
 	
 	// Site Numbers
-	const float ORIGIN = 0.0;
-	const float BELOW = 1.0;
-	const float BELOW_RIGHT = 2.0;
-	const float BELOW_LEFT = 3.0;
+	const int ORIGIN = 1;
+	const int BELOW = 2;
+	const int BELOW_RIGHT = 3;
+	const int BELOW_LEFT = 4;
+	const int RIGHT = 5;
+	const int LEFT = 6;
 	
-	uniform int u_dropperElement;
+	uniform vec4 u_dropperElement;
+	
+	bool isElement(vec4 colour, vec4 element) {
+		return floor(colour * 255.0) == floor(element * 255.0);
+	}
 	
 	void process() {
 	
@@ -341,11 +350,7 @@ const fragmentShaderSource = `#version 300 es
 			`
 		})()}
 	
-		vec4 dropperElement;
-		if (u_dropperElement == 0) dropperElement = EMPTY;
-		if (u_dropperElement == 1) dropperElement = SAND;
-		if (u_dropperElement == 2) dropperElement = WATER;
-		if (u_dropperElement == 3) dropperElement = STATIC;
+		vec4 dropperElement = u_dropperElement;
 	
 		// Am I being dropped to?
 		if (u_dropperDown && isInDropper()) {
@@ -356,14 +361,14 @@ const fragmentShaderSource = `#version 300 es
 		//=================//
 		// What site am I? //
 		//=================//
-		float site;
+		int site;
 		
 		if (isPicked(0.0, 0.0)) site = ORIGIN;
 		else if (isPicked(0.0, 1.0)) site = BELOW;
 		else if (isPicked(-1.0, 1.0)) site = BELOW_RIGHT;
 		else if (isPicked(1.0, 1.0)) site = BELOW_LEFT;
-		
-		// Quit if I am not important :(
+		else if (isPicked(-1.0, 0.0)) site = RIGHT;
+		else if (isPicked(1.0, 0.0)) site = LEFT;
 		else {
 			colour = getColour(0.0, 0.0);
 			return;
@@ -374,6 +379,8 @@ const fragmentShaderSource = `#version 300 es
 		//=========================//
 		vec4 elementOrigin;
 		vec4 elementBelow;
+		vec4 elementLeft;
+		vec4 elementRight;
 		vec4 elementBelowRight;
 		vec4 elementBelowLeft;
 		
@@ -382,59 +389,94 @@ const fragmentShaderSource = `#version 300 es
 			elementBelow = getColour(0.0, -1.0);
 			elementBelowRight = getColour(1.0, -1.0);
 			elementBelowLeft = getColour(-1.0, -1.0);
+			
+			elementLeft = getColour(-1.0, 0.0);
+			elementRight = getColour(1.0, 0.0);
 		}
 		else if (site == BELOW) {
 			elementOrigin = getColour(0.0, 1.0);
 			elementBelow = getColour(0.0, 0.0);
 			elementBelowRight = getColour(1.0, 0.0);
 			elementBelowLeft = getColour(-1.0, 0.0);
+			
+			elementLeft = getColour(-1.0, 1.0);
+			elementRight = getColour(1.0, 1.0);
 		}
 		else if (site == BELOW_RIGHT) {
 			elementOrigin = getColour(-1.0, 1.0);
 			elementBelow = getColour(-1.0, 0.0);
 			elementBelowRight = getColour(0.0, 0.0);
 			elementBelowLeft = getColour(-2.0, 0.0);
+			
+			elementLeft = getColour(-2.0, 1.0);
+			elementRight = getColour(0.0, 1.0);
 		}
 		else if (site == BELOW_LEFT) {
 			elementOrigin = getColour(1.0, 1.0);
 			elementBelow = getColour(1.0, 0.0);
 			elementBelowRight = getColour(2.0, 0.0);
 			elementBelowLeft = getColour(0.0, 0.0);
+			
+			elementLeft = getColour(0.0, 1.0);
+			elementRight = getColour(2.0, 1.0);
+		}
+		else if (site == RIGHT) {
+			elementOrigin = getColour(-1.0, 0.0);
+			elementBelow = getColour(-1.0, -1.0);
+			elementBelowRight = getColour(0.0, -1.0);
+			elementBelowLeft = getColour(-2.0, -1.0);
+			
+			elementLeft = getColour(-2.0, 0.0);
+			elementRight = getColour(0.0, 0.0);
+		}
+		else if (site == LEFT) {
+			elementOrigin = getColour(1.0, 0.0);
+			elementBelow = getColour(1.0, -1.0);
+			elementBelowRight = getColour(2.0, -1.0);
+			elementBelowLeft = getColour(0.0, -1.0);
+			
+			elementLeft = getColour(0.0, 0.0);
+			elementRight = getColour(2.0, 0.0);
+		}
+		
+		//=========================//
+		// How do I behave? - WATER //
+		//=========================//
+		// Fall
+		if (isElement(elementOrigin, WATER) && elementBelow == EMPTY) {
+			elementOrigin = EMPTY;
+			elementBelow = WATER;
+		}
+		
+		else if (isElement(elementOrigin, WATER) && elementLeft == EMPTY) {
+			elementOrigin = EMPTY;
+			elementLeft = WATER;
+		}
+		
+		else if (isElement(elementOrigin, WATER) && elementRight == EMPTY) {
+			elementOrigin = EMPTY;
+			elementRight = WATER;
 		}
 		
 		//=========================//
 		// How do I behave? - SAND //
 		//=========================//
 		// Fall
-		if (elementOrigin == SAND && elementBelow == EMPTY) {
+		else if (elementOrigin == SAND && elementBelow == EMPTY) {
 			elementOrigin = EMPTY;
 			elementBelow = SAND;
-			elementBelowRight = elementBelowRight;
-			elementBelowLeft = elementBelowLeft;
 		}
 		
 		// Slide Right
 		else if (elementOrigin == SAND && elementBelow != EMPTY && elementBelowRight == EMPTY) {
 			elementOrigin = EMPTY;
-			elementBelow = elementBelow;
 			elementBelowRight = SAND;
-			elementBelowLeft = elementBelowLeft;
 		}
 		
 		// Slide Left
 		else if (elementOrigin == SAND && elementBelow != EMPTY && elementBelowRight != EMPTY && elementBelowLeft == EMPTY) {
 			elementOrigin = EMPTY;
-			elementBelow = elementBelow;
-			elementBelowRight = elementBelowRight;
 			elementBelowLeft = SAND;
-		}
-		
-		// Do Nothing
-		else {
-			elementOrigin = elementOrigin;
-			elementBelow = elementBelow;
-			elementBelowRight = elementBelowRight;
-			elementBelowLeft = elementBelowLeft;
 		}
 		
 		//================//
@@ -444,22 +486,29 @@ const fragmentShaderSource = `#version 300 es
 			colour = elementOrigin;
 			return;
 		}
-		else if (site == BELOW) {
+		if (site == BELOW) {
 			colour = elementBelow;
 			return;
 		}
-		else if (site == BELOW_RIGHT) {
+		if (site == BELOW_RIGHT) {
 			colour = elementBelowRight;
 			return;
 		}
-		else if (site == BELOW_LEFT) {
+		if (site == BELOW_LEFT) {
 			colour = elementBelowLeft;
 			return;
 		}
+		if (site == RIGHT) {
+			colour = elementRight;
+			return;
+		}
+		if (site == LEFT) {
+			colour = elementLeft;
+			return;
+		}
 		
-		// This should be inaccessible
-		// If you see red on your screen... that means there's an issue
 		colour = RED;
+		
 	}
 	
 	void postProcess() {
@@ -517,13 +566,13 @@ gl.uniform2f(dropperPositionLocation, 0, 0)
 const dropperPreviousPositionLocation = gl.getUniformLocation(program, "u_dropperPreviousPosition")
 gl.uniform2f(dropperPreviousPositionLocation, 0, 0)
 
-const EMPTY = 0
-const SAND = 1
-const WATER = 2
-const STATIC = 3
+const EMPTY = [0, 0, 0, 0]
+const SAND = [1.0, 204.0 / 255.0, 0.0, 1.0]
+const WATER = [0.0, 0.6, 1.0, 1.0]
+const STATIC = [0.5, 0.5, 0.5, 1.0]
 let DROPPER_ELEMENT = SAND
 const dropperElementLocation = gl.getUniformLocation(program, "u_dropperElement")
-gl.uniform1i(dropperElementLocation, DROPPER_ELEMENT)
+gl.uniform4fv(dropperElementLocation, DROPPER_ELEMENT)
 
 const dropperWidthLocation = gl.getUniformLocation(program, "u_dropperWidth")
 gl.uniform1f(dropperWidthLocation, 1 / WORLD_WIDTH)
@@ -600,13 +649,13 @@ on.keydown((e) => {
 
 let startingTime = 0
 let time = 0
-const EVENT_CYCLE_COUNT = 9 * 6
+const EVENT_CYCLE_COUNT = 18 * 3
 const draw = async () => {
 	
 	previousDown = dropperDown
 	dropperDown = Mouse.down || Touches.length > 0
 
-	gl.uniform1i(dropperElementLocation, DROPPER_ELEMENT)
+	gl.uniform4fv(dropperElementLocation, DROPPER_ELEMENT)
 	
 	gl.uniform1ui(dropperDownLocation, dropperDown)
 	gl.uniform1ui(previousDownLocation, previousDown)
@@ -631,7 +680,7 @@ const draw = async () => {
 	for (let i = startingTime; i < EVENT_CYCLE_COUNT; i++) {
 	
 		let time = i
-		while (time >= 9) time -= 9
+		while (time >= 18) time -= 18
 		gl.uniform1f(timeLocation, time)
 	
 		if (currentDirection === true && !paused) {
@@ -661,7 +710,7 @@ const draw = async () => {
 		
 		if (EVENT_WINDOW) {
 			startingTime = i + 1
-			if (startingTime >= 9) startingTime = 0
+			if (startingTime >= 18) startingTime = 0
 			break
 		}
 	}
