@@ -187,6 +187,8 @@ const fragmentShaderSource = `#version 300 es
 				return true;
 			}
 		}
+		
+		return false;
 	}
 	
 	bool isPickedInWindow(float x, float y) {
