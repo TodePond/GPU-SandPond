@@ -219,6 +219,7 @@ const fragmentShaderSource = `#version 300 es
 	const vec4 EMPTY = vec4(0.0, 0.0, 0.0, 0.0);
 	const vec4 VOID = vec4(1.0, 1.0, 1.0, 0.0);
 	const vec4 WATER = BLUE;
+	const vec4 STATIC = vec4(0.5, 0.5, 0.5, 1.0);
 	
 	vec4 getColour(float x, float y) {
 		
@@ -342,8 +343,9 @@ const fragmentShaderSource = `#version 300 es
 	
 		vec4 dropperElement;
 		if (u_dropperElement == 0) dropperElement = EMPTY;
-		else if (u_dropperElement == 1) dropperElement = SAND;
-		else if (u_dropperElement == 2) dropperElement = WATER;
+		if (u_dropperElement == 1) dropperElement = SAND;
+		if (u_dropperElement == 2) dropperElement = WATER;
+		if (u_dropperElement == 3) dropperElement = STATIC;
 	
 		// Am I being dropped to?
 		if (u_dropperDown && isInDropper()) {
@@ -402,41 +404,6 @@ const fragmentShaderSource = `#version 300 es
 		
 		//=========================//
 		// How do I behave? - SAND //
-		//=========================//
-		// Fall
-		if (elementOrigin == SAND && elementBelow == EMPTY) {
-			elementOrigin = EMPTY;
-			elementBelow = SAND;
-			elementBelowRight = elementBelowRight;
-			elementBelowLeft = elementBelowLeft;
-		}
-		
-		// Slide Right
-		else if (elementOrigin == SAND && elementBelow != EMPTY && elementBelowRight == EMPTY) {
-			elementOrigin = EMPTY;
-			elementBelow = elementBelow;
-			elementBelowRight = SAND;
-			elementBelowLeft = elementBelowLeft;
-		}
-		
-		// Slide Left
-		else if (elementOrigin == SAND && elementBelow != EMPTY && elementBelowRight != EMPTY && elementBelowLeft == EMPTY) {
-			elementOrigin = EMPTY;
-			elementBelow = elementBelow;
-			elementBelowRight = elementBelowRight;
-			elementBelowLeft = SAND;
-		}
-		
-		// Do Nothing
-		else {
-			elementOrigin = elementOrigin;
-			elementBelow = elementBelow;
-			elementBelowRight = elementBelowRight;
-			elementBelowLeft = elementBelowLeft;
-		}
-		
-		//=========================//
-		// How do I behave? - WATER //
 		//=========================//
 		// Fall
 		if (elementOrigin == SAND && elementBelow == EMPTY) {
@@ -553,9 +520,10 @@ gl.uniform2f(dropperPreviousPositionLocation, 0, 0)
 const EMPTY = 0
 const SAND = 1
 const WATER = 2
-let DROPPER_ELEMENT = 1
+const STATIC = 3
+let DROPPER_ELEMENT = SAND
 const dropperElementLocation = gl.getUniformLocation(program, "u_dropperElement")
-gl.uniform1i(dropperElementLocation, SAND)
+gl.uniform1i(dropperElementLocation, DROPPER_ELEMENT)
 
 const dropperWidthLocation = gl.getUniformLocation(program, "u_dropperWidth")
 gl.uniform1f(dropperWidthLocation, 1 / WORLD_WIDTH)
