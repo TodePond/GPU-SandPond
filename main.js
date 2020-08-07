@@ -312,6 +312,8 @@ const fragmentShaderSource = `#version 300 es
 	const float BELOW_RIGHT = 2.0;
 	const float BELOW_LEFT = 3.0;
 	
+	uniform int u_dropperElement;
+	
 	void process() {
 	
 		${(() => {
@@ -334,9 +336,13 @@ const fragmentShaderSource = `#version 300 es
 			`
 		})()}
 	
+		vec4 dropperElement;
+		if (u_dropperElement == 0) dropperElement = EMPTY;
+		else if (u_dropperElement == 1) dropperElement = SAND;
+	
 		// Am I being dropped to?
 		if (u_dropperDown && isInDropper()) {
-			colour = SAND;
+			colour = dropperElement;
 			return;
 		}
 		
@@ -504,6 +510,13 @@ gl.uniform2f(dropperPositionLocation, 0, 0)
 const dropperPreviousPositionLocation = gl.getUniformLocation(program, "u_dropperPreviousPosition")
 gl.uniform2f(dropperPreviousPositionLocation, 0, 0)
 
+const EMPTY = 0
+const SAND = 1
+const WATER = 2
+let DROPPER_ELEMENT = 1
+const dropperElementLocation = gl.getUniformLocation(program, "u_dropperElement")
+gl.uniform1i(dropperElementLocation, SAND)
+
 const dropperWidthLocation = gl.getUniformLocation(program, "u_dropperWidth")
 gl.uniform1f(dropperWidthLocation, 1 / WORLD_WIDTH)
 
@@ -584,6 +597,8 @@ const draw = async () => {
 	previousDown = dropperDown
 	dropperDown = Mouse.down || Touches.length > 0
 
+	gl.uniform1i(dropperElementLocation, DROPPER_ELEMENT)
+	
 	gl.uniform1ui(dropperDownLocation, dropperDown)
 	gl.uniform1ui(previousDownLocation, previousDown)
 	
