@@ -218,6 +218,7 @@ const fragmentShaderSource = `#version 300 es
 	const vec4 SAND = vec4(1.0, 204.0 / 255.0, 0.0, 1.0);
 	const vec4 EMPTY = vec4(0.0, 0.0, 0.0, 0.0);
 	const vec4 VOID = vec4(1.0, 1.0, 1.0, 0.0);
+	const vec4 WATER = BLUE;
 	
 	vec4 getColour(float x, float y) {
 		
@@ -247,6 +248,9 @@ const fragmentShaderSource = `#version 300 es
 	uniform bool u_dropperPreviousDown;
 	
 	bool isInDropper() {
+	
+		if (u_time < 8.0) return false;
+	
 		vec2 space = ew(0.0, 0.0);
 		
 		vec2 drop = u_dropperPosition;
@@ -339,6 +343,7 @@ const fragmentShaderSource = `#version 300 es
 		vec4 dropperElement;
 		if (u_dropperElement == 0) dropperElement = EMPTY;
 		else if (u_dropperElement == 1) dropperElement = SAND;
+		else if (u_dropperElement == 2) dropperElement = WATER;
 	
 		// Am I being dropped to?
 		if (u_dropperDown && isInDropper()) {
@@ -397,6 +402,41 @@ const fragmentShaderSource = `#version 300 es
 		
 		//=========================//
 		// How do I behave? - SAND //
+		//=========================//
+		// Fall
+		if (elementOrigin == SAND && elementBelow == EMPTY) {
+			elementOrigin = EMPTY;
+			elementBelow = SAND;
+			elementBelowRight = elementBelowRight;
+			elementBelowLeft = elementBelowLeft;
+		}
+		
+		// Slide Right
+		else if (elementOrigin == SAND && elementBelow != EMPTY && elementBelowRight == EMPTY) {
+			elementOrigin = EMPTY;
+			elementBelow = elementBelow;
+			elementBelowRight = SAND;
+			elementBelowLeft = elementBelowLeft;
+		}
+		
+		// Slide Left
+		else if (elementOrigin == SAND && elementBelow != EMPTY && elementBelowRight != EMPTY && elementBelowLeft == EMPTY) {
+			elementOrigin = EMPTY;
+			elementBelow = elementBelow;
+			elementBelowRight = elementBelowRight;
+			elementBelowLeft = SAND;
+		}
+		
+		// Do Nothing
+		else {
+			elementOrigin = elementOrigin;
+			elementBelow = elementBelow;
+			elementBelowRight = elementBelowRight;
+			elementBelowLeft = elementBelowLeft;
+		}
+		
+		//=========================//
+		// How do I behave? - WATER //
 		//=========================//
 		// Fall
 		if (elementOrigin == SAND && elementBelow == EMPTY) {
@@ -591,7 +631,8 @@ on.keydown((e) => {
 })
 
 let startingTime = 0
-const EVENT_CYCLE_COUNT = 9
+let time = 0
+const EVENT_CYCLE_COUNT = 9 * 6
 const draw = async () => {
 	
 	previousDown = dropperDown
@@ -621,7 +662,9 @@ const draw = async () => {
 	
 	for (let i = startingTime; i < EVENT_CYCLE_COUNT; i++) {
 	
-		gl.uniform1f(timeLocation, i)
+		let time = i
+		while (time >= 9) time -= 9
+		gl.uniform1f(timeLocation, time)
 	
 		if (currentDirection === true && !paused) {
 			sourceTexture = texture1
