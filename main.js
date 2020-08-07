@@ -244,6 +244,7 @@ const fragmentShaderSource = `#version 300 es
 		return texture(u_Texture, xy);
 	}
 	
+	uniform bool u_dropperPreviousDown;
 	
 	bool isInDropper() {
 		vec2 space = ew(0.0, 0.0);
@@ -251,31 +252,44 @@ const fragmentShaderSource = `#version 300 es
 		vec2 drop = u_dropperPosition;
 		vec2 previous = u_dropperPreviousPosition;
 		
-		vec2 diff = drop - previous;
-		vec2 abs = abs(diff);
-		
-		float largest = max(abs.x, abs.y);
-		vec2 ratio = abs / largest;
-		vec2 way = sign(diff);
-		vec2 inc = way * ratio;
-		
-		float i = 0.0;
-		while (i < 1.0) {
-			if (i >= largest) break;
-			vec2 new = drop - inc * i;
-			vec2 final = new + space.x;
+		if (u_dropperPreviousDown) {
+			vec2 diff = drop - previous;
+			vec2 abs = abs(diff);
 			
-			vec2 debug = new;
-			if (space.x < debug.x + u_dropperWidth) {
-				if (space.x > debug.x - u_dropperWidth) {
-					if (space.y < debug.y + u_dropperWidth) {
-						if (space.y > debug.y - u_dropperWidth) {
+			float largest = max(abs.x, abs.y);
+			vec2 ratio = abs / largest;
+			vec2 way = sign(diff);
+			vec2 inc = way * ratio;
+			
+			float i = 0.0;
+			while (i < 1.0) {
+				if (i >= largest) break;
+				vec2 new = drop - inc * i;
+				vec2 final = new + space.x;
+				
+				vec2 debug = new;
+				if (space.x < debug.x + u_dropperWidth) {
+					if (space.x > debug.x - u_dropperWidth) {
+						if (space.y < debug.y + u_dropperWidth) {
+							if (space.y > debug.y - u_dropperWidth) {
+								return true;
+							}
+						}
+					}
+				}
+				i = i + 1.0 / ${WORLD_WIDTH}.0;
+			}
+			
+		
+			if (space.x < u_dropperPreviousPosition.x + u_dropperWidth) {
+				if (space.x > u_dropperPreviousPosition.x - u_dropperWidth) {
+					if (space.y < u_dropperPreviousPosition.y + u_dropperWidth) {
+						if (space.y > u_dropperPreviousPosition.y - u_dropperWidth) {
 							return true;
 						}
 					}
 				}
 			}
-			i = i + 1.0 / ${WORLD_WIDTH}.0;
 		}
 		
 		
@@ -283,16 +297,6 @@ const fragmentShaderSource = `#version 300 es
 			if (space.x > u_dropperPosition.x - u_dropperWidth) {
 				if (space.y < u_dropperPosition.y + u_dropperWidth) {
 					if (space.y > u_dropperPosition.y - u_dropperWidth) {
-						return true;
-					}
-				}
-			}
-		}
-		
-		if (space.x < u_dropperPreviousPosition.x + u_dropperWidth) {
-			if (space.x > u_dropperPreviousPosition.x - u_dropperWidth) {
-				if (space.y < u_dropperPreviousPosition.y + u_dropperWidth) {
-					if (space.y > u_dropperPreviousPosition.y - u_dropperWidth) {
 						return true;
 					}
 				}
@@ -491,6 +495,9 @@ gl.uniform1ui(isPostLocation, 1)
 const dropperDownLocation = gl.getUniformLocation(program, "u_dropperDown")
 gl.uniform1ui(dropperDownLocation, 0)
 
+const previousDownLocation = gl.getUniformLocation(program, "u_dropperPreviousDown")
+gl.uniform1ui(previousDownLocation, 0)
+
 const dropperPositionLocation = gl.getUniformLocation(program, "u_dropperPosition")
 gl.uniform2f(dropperPositionLocation, 0, 0)
 
@@ -573,8 +580,13 @@ on.keydown((e) => {
 let startingTime = 0
 const EVENT_CYCLE_COUNT = 9
 const draw = async () => {
-		
-	gl.uniform1ui(dropperDownLocation, Mouse.down || Touches.length > 0)
+	
+	previousDown = dropperDown
+	dropperDown = Mouse.down || Touches.length > 0
+
+	gl.uniform1ui(dropperDownLocation, dropperDown)
+	gl.uniform1ui(previousDownLocation, previousDown)
+	
 	gl.uniform2f(dropperPositionLocation, dropperX / WORLD_WIDTH, dropperY / WORLD_WIDTH)
 	gl.uniform2f(dropperPreviousPositionLocation, previousX / WORLD_WIDTH, previousY / WORLD_WIDTH)
 	gl.uniform1f(dropperWidthLocation, DROPPER_SIZE / WORLD_WIDTH)
@@ -645,13 +657,15 @@ requestAnimationFrame(draw)
 //=========//
 // Dropper //
 //=========//
-let dropperX
-let dropperY
 let DROPPER_SIZE = 1
 
+let dropperDown = false
+let dropperX = 0
+let dropperY = 0
+
 let previousDown = false
-let previousX
-let previousY
+let previousX = 0
+let previousY = 0
 
 on.mousewheel((e) => {
 	if (Keyboard.Shift) {
