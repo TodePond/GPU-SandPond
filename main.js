@@ -385,9 +385,9 @@ const fragmentShaderSource = `#version 300 es
 			elementBelowLeft = getColour(0.0, 0.0);
 		}
 		
-		//==================//
-		// How do I behave? //
-		//==================//
+		//=========================//
+		// How do I behave? - SAND //
+		//=========================//
 		// Fall
 		if (elementOrigin == SAND && elementBelow == EMPTY) {
 			elementOrigin = EMPTY;
@@ -672,13 +672,13 @@ canvas.on.mousemove((e) => {
 })
 
 canvas.on.touchstart(e => {
-	dropperX = Math.round(((e.changedTouches[0].clientX - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
+	dropperX = Math.round(((e.changedTouches[0].clientX - canvas.offsetLeft) / canvas.clientWidth) * WORLD_WIDTH)
 	dropperY = WORLD_WIDTH - Math.round(((e.changedTouches[0].clientY - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
 	e.preventDefault()
 })
 
 canvas.on.touchmove(e => {
-	dropperX = Math.round(((e.changedTouches[0].clientX - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
+	dropperX = Math.round(((e.changedTouches[0].clientX - canvas.offsetLeft) / canvas.clientWidth) * WORLD_WIDTH)
 	dropperY = WORLD_WIDTH - Math.round(((e.changedTouches[0].clientY - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
 	e.preventDefault()
 })
