@@ -28,7 +28,7 @@ const makeCanvas = () => {
 	const style = `
 		background-color: rgb(47, 51, 61);
 		margin: ${CANVAS_MARGIN}px;
-		cursor: none;
+		${EVENT_WINDOW? "" : "cursor: none;"}
 	`
 	const canvas = HTML `<canvas style="${style}"></canvas>`
 	return canvas
@@ -446,12 +446,17 @@ const fragmentShaderSource = `#version 300 es
 	}
 	
 	void postProcess() {
-		if (isInDropper()) {
-			colour = vec4(0.0, 1.0, 0.5, 1.0);
-		}
-		else {
-			colour = texture(u_Texture, v_TexturePosition);
-		}
+		
+		${(() => EVENT_WINDOW !== 1? `
+			
+			if (isInDropper()) {
+				colour = vec4(0.0, 1.0, 0.5, 1.0);
+				return;
+			}
+		
+		` : "")()}
+		
+		colour = texture(u_Texture, v_TexturePosition);
 	}
 	
 	void main() {
@@ -560,14 +565,12 @@ gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex
 // Draw //
 //======//
 let currentDirection = true
-let time = 0
 let paused = false
 on.keydown((e) => {
 	if (e.key === " ") paused = !paused
 })
 
-let prevT = 0
-let cummT = 0
+let startingTime = 0
 const EVENT_CYCLE_COUNT = 9
 const draw = async () => {
 		
@@ -589,9 +592,9 @@ const draw = async () => {
 	let frameBuffer
 	let targetTexture
 	
-	for (let i = 0; i < EVENT_CYCLE_COUNT; i++) {
+	for (let i = startingTime; i < EVENT_CYCLE_COUNT; i++) {
 	
-		gl.uniform1f(timeLocation, time)
+		gl.uniform1f(timeLocation, i)
 	
 		if (currentDirection === true && !paused) {
 			sourceTexture = texture1
@@ -618,8 +621,11 @@ const draw = async () => {
 			gl.drawArrays(gl.TRIANGLES, 0, 6)
 		}
 		
-		time += 1
-		if (time >= 9) time = 0
+		if (EVENT_WINDOW) {
+			startingTime = i + 1
+			if (startingTime >= 9) startingTime = 0
+			break
+		}
 	}
 	
 	// Canvas
