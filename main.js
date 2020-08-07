@@ -577,7 +577,6 @@ const draw = async () => {
 	previousX = dropperX
 	previousY = dropperY
 	
-	
 	/*let cont = true
 	if (EVENT_WINDOW) {
 		if (cummT >= 500) cummT = 0
@@ -664,15 +663,15 @@ canvas.on.mousemove((e) => {
 	dropperY = WORLD_WIDTH - Math.round((e.offsetY / canvas.clientHeight) * WORLD_WIDTH)
 })
 
-canvas.on.touchstart(e => {
+canvas.onPassive.touchstart(e => {
 	dropperX = Math.round(((e.changedTouches[0].clientX - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
 	dropperY = WORLD_WIDTH - Math.round(((e.changedTouches[0].clientY - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
-	e.preventDefault()
+	//e.preventDefault()
 })
 
-canvas.on.touchmove(e => {
+canvas.onPassive.touchmove(e => {
 	dropperX = Math.round(((e.changedTouches[0].clientX - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
 	dropperY = WORLD_WIDTH - Math.round(((e.changedTouches[0].clientY - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
-	e.preventDefault()
+	//e.preventDefault()
 })
 
