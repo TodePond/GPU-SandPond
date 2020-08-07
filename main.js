@@ -182,8 +182,8 @@ const fragmentShaderSource = `#version 300 es
 		
 		vec2 space = ew(x, y);
 		
-		if (mod((space.x * ${WORLD_WIDTH}.0) - u_time, 3.0) < 1.0) {
-			if (mod(((space.y * ${WORLD_WIDTH}.0) - u_time / 3.0), 3.0) < 1.0) {
+		if (mod((space.x * ${WORLD_WIDTH}.0) + u_time, 3.0) < 1.0) {
+			if (mod(((space.y * ${WORLD_WIDTH}.0) + u_time / 3.0), 3.0) < 1.0) {
 				return true;
 			}
 		}
@@ -663,15 +663,15 @@ canvas.on.mousemove((e) => {
 	dropperY = WORLD_WIDTH - Math.round((e.offsetY / canvas.clientHeight) * WORLD_WIDTH)
 })
 
-canvas.onPassive.touchstart(e => {
+canvas.on.touchstart(e => {
 	dropperX = Math.round(((e.changedTouches[0].clientX - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
 	dropperY = WORLD_WIDTH - Math.round(((e.changedTouches[0].clientY - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
-	//e.preventDefault()
+	e.preventDefault()
 })
 
-canvas.onPassive.touchmove(e => {
+canvas.on.touchmove(e => {
 	dropperX = Math.round(((e.changedTouches[0].clientX - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
 	dropperY = WORLD_WIDTH - Math.round(((e.changedTouches[0].clientY - CANVAS_MARGIN) / canvas.clientWidth) * WORLD_WIDTH)
-	//e.preventDefault()
+	e.preventDefault()
 })
 
