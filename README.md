@@ -16,9 +16,9 @@ There are some settings you can access by putting parameters after the URL (eg: 
 2 = one sand atom in the middle
 
 **Randomness**<br>
-`r` sets how randomly events should fire (default: 1).<br>
-0 = events don't fire randomly<br>
-1 = events fire randomly
+`r` sets how randomly events should fire (default: 0).<br>
+0 = events fire in non-random places<br>
+1 = events fire in random places (not currently working)
 
 **Event Windows**<br>
 `e` lets you visualise where event windows are taking place (default: 0).<br>
