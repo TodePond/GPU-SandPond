@@ -649,7 +649,7 @@ on.keydown((e) => {
 
 let startingTime = 0
 let time = 0
-const EVENT_CYCLE_COUNT = 18 * 3
+const EVENT_CYCLE_COUNT = 18 * 1
 const draw = async () => {
 	
 	previousDown = dropperDown
