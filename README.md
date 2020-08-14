@@ -11,6 +11,7 @@ If you want to pick different elements, you can set the `DROPPER_ELEMENT` variab
 * `SAND`
 * `WATER`
 * `STATIC`
+* `FORKBOMB`
 
 ## Settings
 There are some settings you can access by putting parameters after the URL (eg: [gpu.sandpond.cool?w=1000&r=0&f=0.5](https://gpu.sandpond.cool?w=1000&r=0&f=0.5)).
