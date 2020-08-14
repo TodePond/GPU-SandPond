@@ -1,7 +1,8 @@
 # GPU SandPond
 Fast Sand?
 
-I've never written WebGL before but I'm experimenting with simulating an [MFM](https://github.com/DaveAckley/MFM)-style engine with GPU.
+I've never written WebGL before but I'm experimenting with simulating an [MFM](https://github.com/DaveAckley/MFM)-style engine with GPU.<br>
+It uses WebGL2 so if you use Safari, you'll need to enable `WebGL 2.0` in the `Experimental Features` menu.
 
 ## Elements
 I haven't added a menu to pick elements from yet.<br>
