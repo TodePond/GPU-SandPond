@@ -20,6 +20,9 @@ const EVENT_WINDOW = EVENT_WINDOW_PARAM !== null? EVENT_WINDOW_PARAM.as(Number) 
 const RANDOM_SPAWN_PARAM = urlParams.get("s")
 const RANDOM_SPAWN = RANDOM_SPAWN_PARAM !== null? RANDOM_SPAWN_PARAM.as(Number) : 0
 
+const EVENT_CYCLE_COUNT_PARAM = urlParams.get("c")
+const EVENT_CYCLE_COUNT = EVENT_CYCLE_COUNT_PARAM !== null? EVENT_CYCLE_COUNT_PARAM.as(Number) : 10
+
 //========//
 // Canvas //
 //========//
@@ -133,10 +136,6 @@ const vertexShaderSource = `#version 300 es
 //=================//
 // Fragment Shader //
 //=================//
-// Event Window (origin r)
-//========================
-//  r
-// gba
 const fragmentShaderSource = `#version 300 es
 
 	precision highp float;
@@ -150,6 +149,7 @@ const fragmentShaderSource = `#version 300 es
 	uniform bool u_dropperDown;
 	uniform float u_dropperWidth;
 	uniform float u_time;
+	uniform float u_eventTime;
 	
 	out vec4 colour;
 	
@@ -253,7 +253,7 @@ const fragmentShaderSource = `#version 300 es
 	
 	bool isInDropper() {
 	
-		if (u_time < 8.0) return false;
+		if (u_eventTime < ${EVENT_CYCLE_COUNT}.0 - 1.0) return false;
 	
 		vec2 space = ew(0.0, 0.0);
 		
@@ -580,6 +580,9 @@ gl.uniform1f(dropperWidthLocation, 1 / WORLD_WIDTH)
 const timeLocation = gl.getUniformLocation(program, "u_time")
 gl.uniform1f(timeLocation, 0)
 
+const eventTimeLocation = gl.getUniformLocation(program, "u_eventTime")
+gl.uniform1f(eventTimeLocation, 0)
+
 // Texture Position Attribute
 const texturePositionLocation = gl.getAttribLocation(program, "a_TexturePosition")
 const texturePositionBuffer = gl.createBuffer()
@@ -615,6 +618,11 @@ if (RANDOM_SPAWN !== 0) for (let i = 0; i < spaces.length; i += 4) {
 			spaces[i+3] = 255
 		}
 	}
+	else if (RANDOM_SPAWN == 3) {
+		spaces[i] = 255
+		spaces[i+1] = 204
+		spaces[i+3] = 255
+	}
 }
 gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, WORLD_WIDTH, WORLD_WIDTH, 0, gl.RGBA, gl.UNSIGNED_BYTE, spaces)
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST )
@@ -647,9 +655,7 @@ on.keydown((e) => {
 	if (e.key === " ") paused = !paused
 })
 
-let startingTime = 0
 let time = 0
-const EVENT_CYCLE_COUNT = 18 * 1
 const draw = async () => {
 	
 	previousDown = dropperDown
@@ -677,11 +683,12 @@ const draw = async () => {
 	let frameBuffer
 	let targetTexture
 	
-	for (let i = startingTime; i < EVENT_CYCLE_COUNT; i++) {
+	for (let i = 0; i < EVENT_CYCLE_COUNT; i++) {
 	
-		let time = i
+		time++
 		while (time >= 18) time -= 18
 		gl.uniform1f(timeLocation, time)
+		gl.uniform1f(eventTimeLocation, i)
 	
 		if (currentDirection === true && !paused) {
 			sourceTexture = texture1
@@ -706,12 +713,6 @@ const draw = async () => {
 			
 			gl.viewport(0, 0, WORLD_WIDTH, WORLD_WIDTH)
 			gl.drawArrays(gl.TRIANGLES, 0, 6)
-		}
-		
-		if (EVENT_WINDOW) {
-			startingTime = i + 1
-			if (startingTime >= 18) startingTime = 0
-			break
 		}
 	}
 	
