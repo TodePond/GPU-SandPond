@@ -20,8 +20,11 @@ const EVENT_WINDOW = EVENT_WINDOW_PARAM !== null? EVENT_WINDOW_PARAM.as(Number) 
 const RANDOM_SPAWN_PARAM = urlParams.get("s")
 const RANDOM_SPAWN = RANDOM_SPAWN_PARAM !== null? RANDOM_SPAWN_PARAM.as(Number) : 0
 
-const EVENT_CYCLE_COUNT_PARAM = urlParams.get("c")
-const EVENT_CYCLE_COUNT = EVENT_CYCLE_COUNT_PARAM !== null? EVENT_CYCLE_COUNT_PARAM.as(Number) : 10
+const EVENTS_NEEDED_FOR_COVERAGE = 9
+
+const EVENTS_PER_FRAME_PARAM = urlParams.get("f")
+const EVENTS_PER_FRAME = EVENTS_PER_FRAME_PARAM !== null? EVENTS_PER_FRAME_PARAM.as(Number) : 1
+const EVENT_CYCLE_COUNT = Math.round(EVENTS_PER_FRAME * EVENTS_NEEDED_FOR_COVERAGE)
 
 //========//
 // Canvas //
