@@ -4,7 +4,7 @@ Fast Sand?
 I've never written WebGL before but I'm experimenting with simulating an [MFM](https://github.com/DaveAckley/MFM)-style engine with GPU.
 
 ## Settings
-There are some settings you can access by putting parameters after the URL (eg: [gpu.sandpond.cool?w=1000&r=0](https://gpu.sandpond.cool?w=1000&r=0&f=0.5)).
+There are some settings you can access by putting parameters after the URL (eg: [gpu.sandpond.cool?w=1000&r=0&f=0.5](https://gpu.sandpond.cool?w=1000&r=0&f=0.5)).
 
 **Width**<br>
 `w` sets the width (and height) of the world (default: 300).
