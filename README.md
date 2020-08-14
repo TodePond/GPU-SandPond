@@ -24,3 +24,6 @@ There are some settings you can access by putting parameters after the URL (eg: 
 `e` lets you visualise where event windows are taking place (default: 0).<br>
 0 = event windows are not visible<br>
 1 = event windows are visible (and the engine runs slower so you can see what's going on)
+
+**Events Per Frame**<br>
+`f` lets you choose how many events each space gets per frame (on average) (default: 1). The original SandPond engine only ever does 1<br>
