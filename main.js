@@ -1,6 +1,5 @@
 const urlParams = new URLSearchParams(window.location.search)
 
-
 const WORLD_WIDTH_PARAM = urlParams.get("w")
 const WORLD_WIDTH = WORLD_WIDTH_PARAM !== null? WORLD_WIDTH_PARAM.as(Number) : 300
 //const WORLD_WIDTH = 16384
@@ -226,6 +225,7 @@ const fragmentShaderSource = `#version 300 es
 	const vec4 VOID = vec4(1.0, 1.0, 1.0, 0.0);
 	const vec4 WATER = vec4(0.0, 0.6, 1.0, 1.0);
 	const vec4 STATIC = vec4(0.5, 0.5, 0.5, 1.0);
+	const vec4 FORKBOMB = RED;
 	
 	vec4 getColour(float x, float y) {
 		
@@ -324,6 +324,7 @@ const fragmentShaderSource = `#version 300 es
 	const int BELOW_LEFT = 4;
 	const int RIGHT = 5;
 	const int LEFT = 6;
+	const int ABOVE = 7;
 	
 	uniform vec4 u_dropperElement;
 	
@@ -372,6 +373,7 @@ const fragmentShaderSource = `#version 300 es
 		else if (isPicked(1.0, 1.0)) site = BELOW_LEFT;
 		else if (isPicked(-1.0, 0.0)) site = RIGHT;
 		else if (isPicked(1.0, 0.0)) site = LEFT;
+		else if (isPicked(0.0, -1.0)) site = ABOVE;
 		else {
 			colour = getColour(0.0, 0.0);
 			return;
@@ -386,10 +388,12 @@ const fragmentShaderSource = `#version 300 es
 		vec4 elementRight;
 		vec4 elementBelowRight;
 		vec4 elementBelowLeft;
+		vec4 elementAbove;
 		
 		if (site == ORIGIN) {
 			elementOrigin = getColour(0.0, 0.0);
 			elementBelow = getColour(0.0, -1.0);
+			elementAbove = getColour(0.0, 1.0);
 			elementBelowRight = getColour(1.0, -1.0);
 			elementBelowLeft = getColour(-1.0, -1.0);
 			
@@ -399,6 +403,7 @@ const fragmentShaderSource = `#version 300 es
 		else if (site == BELOW) {
 			elementOrigin = getColour(0.0, 1.0);
 			elementBelow = getColour(0.0, 0.0);
+			elementAbove = getColour(0.0, 2.0);
 			elementBelowRight = getColour(1.0, 0.0);
 			elementBelowLeft = getColour(-1.0, 0.0);
 			
@@ -408,6 +413,7 @@ const fragmentShaderSource = `#version 300 es
 		else if (site == BELOW_RIGHT) {
 			elementOrigin = getColour(-1.0, 1.0);
 			elementBelow = getColour(-1.0, 0.0);
+			elementAbove = getColour(-1.0, 2.0);
 			elementBelowRight = getColour(0.0, 0.0);
 			elementBelowLeft = getColour(-2.0, 0.0);
 			
@@ -417,6 +423,7 @@ const fragmentShaderSource = `#version 300 es
 		else if (site == BELOW_LEFT) {
 			elementOrigin = getColour(1.0, 1.0);
 			elementBelow = getColour(1.0, 0.0);
+			elementAbove = getColour(1.0, 2.0);
 			elementBelowRight = getColour(2.0, 0.0);
 			elementBelowLeft = getColour(0.0, 0.0);
 			
@@ -426,6 +433,7 @@ const fragmentShaderSource = `#version 300 es
 		else if (site == RIGHT) {
 			elementOrigin = getColour(-1.0, 0.0);
 			elementBelow = getColour(-1.0, -1.0);
+			elementAbove = getColour(-1.0, 1.0);
 			elementBelowRight = getColour(0.0, -1.0);
 			elementBelowLeft = getColour(-2.0, -1.0);
 			
@@ -435,16 +443,27 @@ const fragmentShaderSource = `#version 300 es
 		else if (site == LEFT) {
 			elementOrigin = getColour(1.0, 0.0);
 			elementBelow = getColour(1.0, -1.0);
+			elementAbove = getColour(1.0, 1.0);
 			elementBelowRight = getColour(2.0, -1.0);
 			elementBelowLeft = getColour(0.0, -1.0);
 			
 			elementLeft = getColour(0.0, 0.0);
 			elementRight = getColour(2.0, 0.0);
 		}
+		else if (site == ABOVE) {
+			elementOrigin = getColour(0.0, -1.0);
+			elementBelow = getColour(0.0, -2.0);
+			elementAbove = getColour(0.0, 0.0);
+			elementBelowRight = getColour(1.0, -2.0);
+			elementBelowLeft = getColour(-1.0, -2.0);
+			
+			elementLeft = getColour(-1.0, -1.0);
+			elementRight = getColour(1.0, -1.0);
+		}
 		
-		//=========================//
+		//==========================//
 		// How do I behave? - WATER //
-		//=========================//
+		//==========================//
 		// Fall
 		if (isElement(elementOrigin, WATER) && elementBelow == EMPTY) {
 			elementOrigin = EMPTY;
@@ -459,6 +478,16 @@ const fragmentShaderSource = `#version 300 es
 		else if (isElement(elementOrigin, WATER) && elementRight == EMPTY) {
 			elementOrigin = EMPTY;
 			elementRight = WATER;
+		}
+		
+		//=============================//
+		// How do I behave? - FORKBOMB //
+		//=============================//
+		else if (elementOrigin == FORKBOMB) {
+			elementBelow = FORKBOMB;
+			elementLeft = FORKBOMB;
+			elementRight = FORKBOMB;
+			elementAbove = FORKBOMB;
 		}
 		
 		//=========================//
@@ -507,6 +536,10 @@ const fragmentShaderSource = `#version 300 es
 		}
 		if (site == LEFT) {
 			colour = elementLeft;
+			return;
+		}
+		if (site == ABOVE) {
+			colour = elementAbove;
 			return;
 		}
 		
@@ -573,6 +606,7 @@ const EMPTY = [0, 0, 0, 0]
 const SAND = [1.0, 204.0 / 255.0, 0.0, 1.0]
 const WATER = [0.0, 0.6, 1.0, 1.0]
 const STATIC = [0.5, 0.5, 0.5, 1.0]
+const FORKBOMB = [1.0, 70.0 / 255.0, 70.0 / 255.0, 1.0]
 let DROPPER_ELEMENT = SAND
 const dropperElementLocation = gl.getUniformLocation(program, "u_dropperElement")
 gl.uniform4fv(dropperElementLocation, DROPPER_ELEMENT)
