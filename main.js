@@ -269,7 +269,7 @@ const fragmentShaderSource = `#version 300 es
 		vec2 drop = u_dropperPosition;
 		vec2 previous = u_dropperPreviousPosition;
 		
-		float width = u_dropperWidth * u_zoom;
+		float width = u_dropperWidth;// * u_zoom;
 				
 		if (u_dropperPreviousDown) {
 			vec2 diff = drop - previous;
@@ -287,10 +287,10 @@ const fragmentShaderSource = `#version 300 es
 				vec2 final = new + space.x;
 				
 				vec2 debug = new;
-				if (space.x < debug.x + width) {
-					if (space.x > debug.x - width) {
-						if (space.y < debug.y + width) {
-							if (space.y > debug.y - width) {
+				if (space.x <= debug.x + width) {
+					if (space.x >= debug.x - width) {
+						if (space.y <= debug.y + width) {
+							if (space.y >= debug.y - width) {
 								return true;
 							}
 						}
@@ -300,10 +300,10 @@ const fragmentShaderSource = `#version 300 es
 			}
 			
 		
-			if (space.x < u_dropperPreviousPosition.x + width) {
-				if (space.x > u_dropperPreviousPosition.x - width) {
-					if (space.y < u_dropperPreviousPosition.y + width) {
-						if (space.y > u_dropperPreviousPosition.y - width) {
+			if (space.x <= u_dropperPreviousPosition.x + width) {
+				if (space.x >= u_dropperPreviousPosition.x - width) {
+					if (space.y <= u_dropperPreviousPosition.y + width) {
+						if (space.y >= u_dropperPreviousPosition.y - width) {
 							return true;
 						}
 					}
@@ -312,10 +312,10 @@ const fragmentShaderSource = `#version 300 es
 		}
 		
 		
-		if (space.x < u_dropperPosition.x + width) {
-			if (space.x > u_dropperPosition.x - width) {
-				if (space.y < u_dropperPosition.y + width) {
-					if (space.y > u_dropperPosition.y - width) {
+		if (space.x <= u_dropperPosition.x + width) {
+			if (space.x >= u_dropperPosition.x - width) {
+				if (space.y <= u_dropperPosition.y + width) {
+					if (space.y >= u_dropperPosition.y - width) {
 						return true;
 					}
 				}
@@ -735,8 +735,8 @@ const draw = async () => {
 	previousMouseY = Mouse.y
 	
 	if (middleDown) {
-		PAN_POSITION_X -= (diffX / WORLD_WIDTH)
-		PAN_POSITION_Y += (diffY / WORLD_WIDTH)
+		PAN_POSITION_X -= diffX / canvas.clientWidth
+		PAN_POSITION_Y += diffY / canvas.clientHeight
 	}
 	
 	gl.uniform1f(zoomLocation, ZOOM)
