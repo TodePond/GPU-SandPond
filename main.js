@@ -838,21 +838,23 @@ on.mousewheel((e) => {
 	}
 	else {
 		if (e.deltaY < 0) {
-			ZOOM += ZOOM_SPEED
+			const zoomStep = (ZOOM - ZOOM * (1 - ZOOM_SPEED))
+			ZOOM += zoomStep
 			const [x, y] = getTheoreticalDropperPos()
 			const xRatio = (x / WORLD_WIDTH)
 			const yRatio = (y / WORLD_WIDTH)
-			PAN_POSITION_X += ZOOM_SPEED * xRatio
-			PAN_POSITION_Y += ZOOM_SPEED * yRatio
+			PAN_POSITION_X += zoomStep * xRatio
+			PAN_POSITION_Y += zoomStep * yRatio
 			updateDropperPos()
 		}
 		else if (e.deltaY > 0) {
-			ZOOM -= ZOOM_SPEED
+			const zoomStep = (ZOOM - ZOOM * (1 - ZOOM_SPEED))
+			ZOOM -= zoomStep
 			const [x, y] = getTheoreticalDropperPos()
 			const xRatio = (x / WORLD_WIDTH)
 			const yRatio = (y / WORLD_WIDTH)
-			PAN_POSITION_X -= ZOOM_SPEED * xRatio
-			PAN_POSITION_Y -= ZOOM_SPEED * yRatio
+			PAN_POSITION_X -= zoomStep * xRatio
+			PAN_POSITION_Y -= zoomStep * yRatio
 			updateDropperPos()
 		}
 	}
