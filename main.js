@@ -839,8 +839,11 @@ on.mousewheel((e) => {
 	else {
 		if (e.deltaY < 0) {
 			ZOOM += ZOOM_SPEED
-			PAN_POSITION_X += ZOOM_SPEED * 0.5
-			PAN_POSITION_Y += ZOOM_SPEED * 0.5
+			const [x, y] = getTheoreticalDropperPos()
+			const xRatio = (x / WORLD_WIDTH)
+			const yRatio = (y / WORLD_WIDTH)
+			PAN_POSITION_X += ZOOM_SPEED * xRatio
+			PAN_POSITION_Y += ZOOM_SPEED * yRatio
 			updateDropperPos()
 		}
 		else if (e.deltaY > 0) {
@@ -848,8 +851,8 @@ on.mousewheel((e) => {
 			const [x, y] = getTheoreticalDropperPos()
 			const xRatio = (x / WORLD_WIDTH)
 			const yRatio = (y / WORLD_WIDTH)
-			PAN_POSITION_X -= ZOOM_SPEED * 0.5
-			PAN_POSITION_Y -= ZOOM_SPEED * 0.5
+			PAN_POSITION_X -= ZOOM_SPEED * xRatio
+			PAN_POSITION_Y -= ZOOM_SPEED * yRatio
 			updateDropperPos()
 		}
 	}
