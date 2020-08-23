@@ -264,7 +264,7 @@ const fragmentShaderSource = `#version 300 es
 	
 		if (u_eventTime < ${EVENT_CYCLE_COUNT}.0 - 1.0) return false;
 	
-		vec2 space = (ew(0.0, 0.0) + vec2(offsetX, offsetY)) * offsetZoom;
+		vec2 space = (ew(0.0, 0.0) + vec2(offsetX, offsetY)) / offsetZoom;
 		
 		vec2 drop = u_dropperPosition;
 		vec2 previous = u_dropperPreviousPosition;
@@ -365,7 +365,7 @@ const fragmentShaderSource = `#version 300 es
 		vec4 dropperElement = u_dropperElement;
 	
 		// Am I being dropped to?
-		if (u_dropperDown && isInDropper(0.0, 0.0, u_zoom)) {
+		if (u_dropperDown && isInDropper(0.0, 0.0, 1.0)) {
 			colour = dropperElement;
 			return;
 		}
@@ -561,7 +561,7 @@ const fragmentShaderSource = `#version 300 es
 		
 		${(() => EVENT_WINDOW !== 1? `
 			
-			if (isInDropper(u_panPosition.x, u_panPosition.y, 1.0)) {
+			if (isInDropper(u_panPosition.x, u_panPosition.y, u_zoom)) {
 				colour = vec4(0.0, 1.0, 0.5, 1.0);
 				return;
 			}
@@ -838,23 +838,45 @@ on.mousewheel((e) => {
 	}
 	else {
 		if (e.deltaY < 0) {
-			//ZOOM *= 1 + ZOOM_SPEED
 			ZOOM += ZOOM_SPEED
 			PAN_POSITION_X += ZOOM_SPEED * 0.5
 			PAN_POSITION_Y += ZOOM_SPEED * 0.5
+			updateDropperPos()
 		}
 		else if (e.deltaY > 0) {
-			//ZOOM *= 1 - ZOOM_SPEED
 			ZOOM -= ZOOM_SPEED
+			const [x, y] = getTheoreticalDropperPos()
+			const xRatio = (x / WORLD_WIDTH)
+			const yRatio = (y / WORLD_WIDTH)
 			PAN_POSITION_X -= ZOOM_SPEED * 0.5
 			PAN_POSITION_Y -= ZOOM_SPEED * 0.5
+			updateDropperPos()
 		}
 	}
 })
 
+
+const getTheoreticalDropperPos = () => {
+	const x = Math.round((((Mouse.x - canvas.offsetLeft) / canvas.clientWidth) + PAN_POSITION_X) * WORLD_WIDTH / ZOOM)
+	const y = WORLD_WIDTH / ZOOM - Math.round((((Mouse.y - CANVAS_MARGIN) / canvas.clientWidth) - PAN_POSITION_Y) * WORLD_WIDTH / ZOOM)
+	return [x, y]
+}
+
+const updateDropperPos = (reset = false) => {
+	[dropperX, dropperY] = getTheoreticalDropperPos()
+	return
+	;dropperX = Math.round((((Mouse.x - canvas.offsetLeft) / canvas.clientWidth) + PAN_POSITION_X) * WORLD_WIDTH)
+	dropperY = WORLD_WIDTH - Math.round((((Mouse.y - CANVAS_MARGIN) / canvas.clientWidth) - PAN_POSITION_Y) * WORLD_WIDTH)
+	if (reset) {
+		previousX = dropperX
+		previousY = dropperY
+	}
+}
+
 canvas.on.mousemove((e) => {
-	dropperX = Math.round(((e.offsetX / canvas.clientWidth) + PAN_POSITION_X) * WORLD_WIDTH)
-	dropperY = WORLD_WIDTH - Math.round(((e.offsetY / canvas.clientHeight) - PAN_POSITION_Y) * WORLD_WIDTH)
+	return updateDropperPos()
+	/*dropperX = Math.round(((e.offsetX / canvas.clientWidth) + PAN_POSITION_X) * WORLD_WIDTH)
+	dropperY = WORLD_WIDTH - Math.round(((e.offsetY / canvas.clientHeight) - PAN_POSITION_Y) * WORLD_WIDTH)*/
 })
 
 canvas.on.touchstart(e => {
