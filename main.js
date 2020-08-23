@@ -25,15 +25,22 @@ const EVENTS_PER_FRAME_PARAM = urlParams.get("f")
 const EVENTS_PER_FRAME = EVENTS_PER_FRAME_PARAM !== null? EVENTS_PER_FRAME_PARAM.as(Number) : 1
 const EVENT_CYCLE_COUNT = Math.round(EVENTS_PER_FRAME * EVENTS_NEEDED_FOR_COVERAGE)
 
+let PAN_POSITION_X = 0
+let PAN_POSITION_Y = 0
+let ZOOM = 1.0
+
+const BG_COLOUR = new THREE.Color()
+BG_COLOUR.setHSL(Math.random(), 1, 0.8)
+
 //========//
 // Canvas //
 //========//
-const CANVAS_MARGIN = 10
+const CANVAS_MARGIN = 0
 const makeCanvas = () => {
 	const style = `
 		background-color: rgb(47, 51, 61);
 		margin: ${CANVAS_MARGIN}px;
-		${EVENT_WINDOW? "" : "cursor: none;"}
+		${EVENT_WINDOW? "" : "cursor: normal;"}
 	`
 	const canvas = HTML `<canvas style="${style}"></canvas>`
 	return canvas
@@ -153,14 +160,13 @@ const fragmentShaderSource = `#version 300 es
 	uniform float u_time;
 	uniform float u_eventTime;
 	
+	uniform vec2 u_panPosition;
+	uniform float u_zoom;
+	
 	out vec4 colour;
 	
 	float random(vec2 st) {
 		return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-	}
-	
-	vec2 siteOrigin(vec2 position) {
-		return position;
 	}
 	
 	vec2 world(float x, float y) {
@@ -254,11 +260,11 @@ const fragmentShaderSource = `#version 300 es
 	
 	uniform bool u_dropperPreviousDown;
 	
-	bool isInDropper() {
+	bool isInDropper(float offsetX, float offsetY, float offsetZoom) {
 	
 		if (u_eventTime < ${EVENT_CYCLE_COUNT}.0 - 1.0) return false;
 	
-		vec2 space = ew(0.0, 0.0);
+		vec2 space = (ew(0.0, 0.0) + vec2(offsetX, offsetY)) * offsetZoom;
 		
 		vec2 drop = u_dropperPosition;
 		vec2 previous = u_dropperPreviousPosition;
@@ -357,7 +363,7 @@ const fragmentShaderSource = `#version 300 es
 		vec4 dropperElement = u_dropperElement;
 	
 		// Am I being dropped to?
-		if (u_dropperDown && isInDropper()) {
+		if (u_dropperDown && isInDropper(0.0, 0.0, u_zoom)) {
 			colour = dropperElement;
 			return;
 		}
@@ -547,18 +553,22 @@ const fragmentShaderSource = `#version 300 es
 		
 	}
 	
+	const vec4 u_bgColor = vec4(${BG_COLOUR.r}, ${BG_COLOUR.g}, ${BG_COLOUR.b}, 1.0);
+	
 	void postProcess() {
 		
 		${(() => EVENT_WINDOW !== 1? `
 			
-			if (isInDropper()) {
+			if (isInDropper(u_panPosition.x, u_panPosition.y, 1.0)) {
 				colour = vec4(0.0, 1.0, 0.5, 1.0);
 				return;
 			}
 		
 		` : "")()}
 		
-		colour = texture(u_Texture, v_TexturePosition);
+		vec2 targetPos = (v_TexturePosition + u_panPosition) / u_zoom;
+		if (targetPos.x <= 1.0 && targetPos.x >= 0.0 && targetPos.y >= 0.0 && targetPos.y <= 1.0) colour = texture(u_Texture, targetPos);
+		else colour = u_bgColor;
 	}
 	
 	void main() {
@@ -598,6 +608,12 @@ gl.uniform1ui(previousDownLocation, 0)
 
 const dropperPositionLocation = gl.getUniformLocation(program, "u_dropperPosition")
 gl.uniform2f(dropperPositionLocation, 0, 0)
+
+const panPositionLocation = gl.getUniformLocation(program, "u_panPosition")
+gl.uniform2f(panPositionLocation, PAN_POSITION_X, PAN_POSITION_Y)
+
+const zoomLocation = gl.getUniformLocation(program, "u_zoom")
+gl.uniform1f(zoomLocation, ZOOM)
 
 const dropperPreviousPositionLocation = gl.getUniformLocation(program, "u_dropperPreviousPosition")
 gl.uniform2f(dropperPreviousPositionLocation, 0, 0)
@@ -692,12 +708,37 @@ on.keydown((e) => {
 	if (e.key === " ") paused = !paused
 })
 
+let middleDown = false
+on.mousedown(e => {
+	if (e.button === 1) middleDown = true
+})
+on.mouseup(e => {
+	if (e.button === 1) middleDown = false
+})
+
 let time = 0
+
+let previousMouseX = 0
+let previousMouseY = 0
 const draw = async () => {
 	
 	previousDown = dropperDown
 	dropperDown = Mouse.down || Touches.length > 0
-
+	
+	
+	const diffX = Mouse.x - previousMouseX
+	const diffY = Mouse.y - previousMouseY
+	
+	previousMouseX = Mouse.x
+	previousMouseY = Mouse.y
+	
+	if (middleDown) {
+		PAN_POSITION_X -= (diffX / WORLD_WIDTH)
+		PAN_POSITION_Y += (diffY / WORLD_WIDTH)
+	}
+	
+	gl.uniform1f(zoomLocation, ZOOM)
+	gl.uniform2f(panPositionLocation, PAN_POSITION_X, PAN_POSITION_Y)
 	gl.uniform4fv(dropperElementLocation, DROPPER_ELEMENT)
 	
 	gl.uniform1ui(dropperDownLocation, dropperDown)
@@ -706,6 +747,7 @@ const draw = async () => {
 	gl.uniform2f(dropperPositionLocation, dropperX / WORLD_WIDTH, dropperY / WORLD_WIDTH)
 	gl.uniform2f(dropperPreviousPositionLocation, previousX / WORLD_WIDTH, previousY / WORLD_WIDTH)
 	gl.uniform1f(dropperWidthLocation, DROPPER_SIZE / WORLD_WIDTH)
+	
 	
 	previousX = dropperX
 	previousY = dropperY
@@ -780,6 +822,7 @@ let previousDown = false
 let previousX = 0
 let previousY = 0
 
+const ZOOM_SPEED = 0.05
 on.mousewheel((e) => {
 	if (Keyboard.Shift) {
 		if (e.deltaY < 0) {
@@ -791,11 +834,25 @@ on.mousewheel((e) => {
 			if (DROPPER_SIZE < 1) DROPPER_SIZE = 1
 		}
 	}
+	else {
+		if (e.deltaY < 0) {
+			//ZOOM *= 1 + ZOOM_SPEED
+			ZOOM += ZOOM_SPEED
+			PAN_POSITION_X += ZOOM_SPEED * 0.5
+			PAN_POSITION_Y += ZOOM_SPEED * 0.5
+		}
+		else if (e.deltaY > 0) {
+			//ZOOM *= 1 - ZOOM_SPEED
+			ZOOM -= ZOOM_SPEED
+			PAN_POSITION_X -= ZOOM_SPEED * 0.5
+			PAN_POSITION_Y -= ZOOM_SPEED * 0.5
+		}
+	}
 })
 
 canvas.on.mousemove((e) => {
-	dropperX = Math.round((e.offsetX / canvas.clientWidth) * WORLD_WIDTH)
-	dropperY = WORLD_WIDTH - Math.round((e.offsetY / canvas.clientHeight) * WORLD_WIDTH)
+	dropperX = Math.round(((e.offsetX / canvas.clientWidth) + PAN_POSITION_X) * WORLD_WIDTH)
+	dropperY = WORLD_WIDTH - Math.round(((e.offsetY / canvas.clientHeight) - PAN_POSITION_Y) * WORLD_WIDTH)
 })
 
 canvas.on.touchstart(e => {
