@@ -269,6 +269,8 @@ const fragmentShaderSource = `#version 300 es
 		vec2 drop = u_dropperPosition;
 		vec2 previous = u_dropperPreviousPosition;
 		
+		float width = u_dropperWidth * u_zoom;
+				
 		if (u_dropperPreviousDown) {
 			vec2 diff = drop - previous;
 			vec2 abs = abs(diff);
@@ -285,10 +287,10 @@ const fragmentShaderSource = `#version 300 es
 				vec2 final = new + space.x;
 				
 				vec2 debug = new;
-				if (space.x < debug.x + u_dropperWidth) {
-					if (space.x > debug.x - u_dropperWidth) {
-						if (space.y < debug.y + u_dropperWidth) {
-							if (space.y > debug.y - u_dropperWidth) {
+				if (space.x < debug.x + width) {
+					if (space.x > debug.x - width) {
+						if (space.y < debug.y + width) {
+							if (space.y > debug.y - width) {
 								return true;
 							}
 						}
@@ -298,10 +300,10 @@ const fragmentShaderSource = `#version 300 es
 			}
 			
 		
-			if (space.x < u_dropperPreviousPosition.x + u_dropperWidth) {
-				if (space.x > u_dropperPreviousPosition.x - u_dropperWidth) {
-					if (space.y < u_dropperPreviousPosition.y + u_dropperWidth) {
-						if (space.y > u_dropperPreviousPosition.y - u_dropperWidth) {
+			if (space.x < u_dropperPreviousPosition.x + width) {
+				if (space.x > u_dropperPreviousPosition.x - width) {
+					if (space.y < u_dropperPreviousPosition.y + width) {
+						if (space.y > u_dropperPreviousPosition.y - width) {
 							return true;
 						}
 					}
@@ -310,10 +312,10 @@ const fragmentShaderSource = `#version 300 es
 		}
 		
 		
-		if (space.x < u_dropperPosition.x + u_dropperWidth) {
-			if (space.x > u_dropperPosition.x - u_dropperWidth) {
-				if (space.y < u_dropperPosition.y + u_dropperWidth) {
-					if (space.y > u_dropperPosition.y - u_dropperWidth) {
+		if (space.x < u_dropperPosition.x + width) {
+			if (space.x > u_dropperPosition.x - width) {
+				if (space.y < u_dropperPosition.y + width) {
+					if (space.y > u_dropperPosition.y - width) {
 						return true;
 					}
 				}
