@@ -26,11 +26,6 @@ There are some settings you can access by putting parameters after the URL (eg: 
 2 = one sand atom in the middle<br>
 3 = fill the world up with sand
 
-**Randomness**<br>
-`r` sets how randomly events should fire (default: 0).<br>
-0 = events fire in non-random places<br>
-1 = events fire in random places (not currently working)
-
 **Event Windows**<br>
 `e` lets you visualise where event windows are taking place (default: 0).<br>
 0 = event windows are not visible<br>

@@ -5,14 +5,6 @@ const WORLD_WIDTH = WORLD_WIDTH_PARAM !== null? WORLD_WIDTH_PARAM.as(Number) : 3
 //const WORLD_WIDTH = 16384
 const SPACE_COUNT = WORLD_WIDTH * WORLD_WIDTH
 
-const RANDOM_MODE_PARAM = urlParams.get("r")
-const RANDOM_MODE = RANDOM_MODE_PARAM !== null? RANDOM_MODE_PARAM.as(Number) : 0
-
-if (RANDOM_MODE === 1) {
-	alert(`[SandPond] Sorry, random mode is currently not supported because I'm still working on it (:`)
-	throw new Error(`[SandPond] Sorry, random mode is currently not supported because I'm still working on it (:`)
-}
-
 const EVENT_WINDOW_PARAM = urlParams.get("e")
 const EVENT_WINDOW = EVENT_WINDOW_PARAM !== null? EVENT_WINDOW_PARAM.as(Number) : 0
 
@@ -228,6 +220,7 @@ const fragmentShaderSource = `#version 300 es
 	uniform bool u_dropperDown;
 	uniform float u_dropperWidth;
 	uniform float u_time;
+	uniform float u_seed;
 	uniform float u_eventTime;
 	
 	uniform vec2 u_panPosition;
@@ -260,16 +253,35 @@ const fragmentShaderSource = `#version 300 es
 		
 		vec2 space = ew(x, y);
 		
-		float xDirection = 1.0;
-		if (mod(u_time, 2.0) > 1.0) xDirection = -xDirection;
-		
-		if (mod((space.x * ${WORLD_WIDTH}.0) + u_time, 3.0) < 1.0) {
-			if (mod(((space.y * ${WORLD_WIDTH}.0) - u_time / 3.0), 3.0) < 1.0) {
-				return true;
-			}
-		}
+		if (random(space / (u_seed + 1.0)) < 0.035) return true;
 		
 		return false;
+	}
+	
+	int getWindowParticipationCount(float x, float y) {
+		int score = 0;
+		if (isPicked(x + 1.0, y + 0.0)) score += 1;
+		if (isPicked(x + 1.0, y + 1.0)) score += 1;
+		if (isPicked(x + 0.0, y + 1.0)) score += 1;
+		if (isPicked(x + -1.0, y + 1.0)) score += 1;
+		if (isPicked(x + -1.0, y + 0.0)) score += 1;
+		if (isPicked(x + -1.0, y + -1.0)) score += 1;
+		if (isPicked(x + 0.0, y + -1.0)) score += 1;
+		if (isPicked(x + 1.0, y + -1.0)) score += 1;
+		return score;
+	}
+	
+	bool isPickedAndNoOverlap(float x, float y) {
+		if (!isPicked(x, y)) return false;
+		if (getWindowParticipationCount(x + 1.0, y + 0.0) != 1) return false;
+		if (getWindowParticipationCount(x + 1.0, y + 1.0) != 1) return false;
+		if (getWindowParticipationCount(x + 0.0, y + 1.0) != 1) return false;
+		if (getWindowParticipationCount(x + -1.0, y + 1.0) != 1) return false;
+		if (getWindowParticipationCount(x + -1.0, y + 0.0) != 1) return false;
+		if (getWindowParticipationCount(x + -1.0, y + -1.0) != 1) return false;
+		if (getWindowParticipationCount(x + 0.0, y + -1.0) != 1) return false;
+		if (getWindowParticipationCount(x + 1.0, y + -1.0) != 1) return false;
+		return true;
 	}
 	
 	bool isPickedInWindow(float x, float y) {
@@ -284,10 +296,9 @@ const fragmentShaderSource = `#version 300 es
 		return false;
 	}
 	
-	// This is needed for PRNG
-	// For a synchronous approach, this is not needed
 	bool isInWindow(float x, float y) {
-		return isPickedInWindow(x, y);
+		if (getWindowParticipationCount(x, y) != 1) return false;
+		return true;
 	}
 	
 	const vec4 WHITE = vec4(224.0 / 255.0, 224.0 / 255.0, 224.0 / 255.0, 1.0);
@@ -415,15 +426,18 @@ const fragmentShaderSource = `#version 300 es
 		${(() => {
 			if (!EVENT_WINDOW) return ""
 			return `
-				// Am I in someone else's event window??
-				if (isInWindow(0.0, 0.0)) {
-					colour = BLUE;
+				
+				if (isPicked(0.0, 0.0)) {
+					if (isPickedAndNoOverlap(0.0, 0.0)) {
+						colour = RED;
+						return;
+					}
+					colour = SAND;
 					return;
 				}
 				
-				// Am I an origin??
-				if (isPicked(0.0, 0.0)) {
-					colour = RED;
+				if (getWindowParticipationCount(0.0, 0.0) >= 1) {
+					colour = BLUE;
 					return;
 				}
 				
@@ -709,6 +723,9 @@ gl.uniform1f(dropperWidthLocation, 1 / WORLD_WIDTH)
 const timeLocation = gl.getUniformLocation(program, "u_time")
 gl.uniform1f(timeLocation, 0)
 
+const seedLocation = gl.getUniformLocation(program, "u_seed")
+gl.uniform1f(seedLocation, 0)
+
 const eventTimeLocation = gl.getUniformLocation(program, "u_eventTime")
 gl.uniform1f(eventTimeLocation, 0)
 
@@ -807,6 +824,8 @@ canvas.on.touchend(e => {
 })
 
 let time = 0
+const SEED_STEP = 0.0001
+let seed = SEED_STEP
 
 let previousMouseX = 0
 let previousMouseY = 0
@@ -854,8 +873,11 @@ const draw = async () => {
 	for (let i = 0; i < EVENT_CYCLE_COUNT; i++) {
 	
 		time++
+		seed += SEED_STEP
+		if (seed > 1.0) seed = SEED_STEP
 		while (time >= 18) time -= 18
 		gl.uniform1f(timeLocation, time)
+		gl.uniform1f(seedLocation, seed)
 		gl.uniform1f(eventTimeLocation, i)
 	
 		if (currentDirection === true && !paused) {
