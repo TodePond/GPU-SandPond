@@ -30,7 +30,51 @@ let PAN_POSITION_Y = 0
 let ZOOM = 1.0
 
 const BG_COLOUR = new THREE.Color()
-BG_COLOUR.setHSL(Math.random(), 1, 0.8)
+BG_COLOUR.setRGB(13 / 255, 16 / 255, 23 / 255)
+//BG_COLOUR.setHSL(Math.random(), 1, 0.92)
+
+//======//
+// Menu //
+//======//
+const MENU_WIDTH = 100
+const makeMenu = () => {
+	const style = `
+		position: absolute;
+		width: 100px;
+	`
+	const menu = HTML `<div class="menu"></div>`
+	
+	const sand = makeMenuItem("Sand", SAND, "#fc0")
+	const water = makeMenuItem("Water", WATER, "rgb(0, 153, 255)")
+	const static = makeMenuItem("Static", STATIC, "rgb(128, 128, 128)")
+	const forkbomb = makeMenuItem("Forkbomb", FORKBOMB, "rgb(255, 70, 70)")
+	const empty = makeMenuItem("Empty", EMPTY, "rgb(13, 16, 23)", true)
+	menu.appendChild(sand)
+	menu.appendChild(water)
+	menu.appendChild(static)
+	menu.appendChild(empty)
+	menu.appendChild(forkbomb)
+	
+	return menu
+	
+}
+
+const makeMenuItem = (name, element, colour, inverse = false) => {
+	const style = `
+		background-color: ${colour};
+		width: 100px;
+		font-family: Rosario;
+		padding: 10px 0px;
+		cursor: default;
+		user-select: none;
+		color: ${inverse? "rgb(224, 224, 224)" : "rgb(13, 16, 23)"};
+	`
+	const item = HTML `<div style="${style}" id="menuItem${name}" class="menuItem menuItem${name}">${name}</div>`
+	item.on.click(e => {
+		DROPPER_ELEMENT = element
+	})
+	return item
+}
 
 //========//
 // Canvas //
@@ -41,18 +85,22 @@ const makeCanvas = () => {
 		background-color: rgb(47, 51, 61);
 		margin: ${CANVAS_MARGIN}px;
 		${EVENT_WINDOW? "" : "cursor: normal;"}
+		position: absolute;
+		left: ${MENU_WIDTH}px;
+		top:0px;
 	`
 	const canvas = HTML `<canvas style="${style}"></canvas>`
 	return canvas
 }
 	
 const resizeCanvas = (canvas) => {
-	const smallestDimension = Math.min(document.body.clientWidth - CANVAS_MARGIN * 2, document.body.clientHeight - CANVAS_MARGIN * 2)
+	const smallestDimension = Math.min(document.body.clientWidth - MENU_WIDTH - CANVAS_MARGIN * 2, document.body.clientHeight - CANVAS_MARGIN * 2)
 	canvas.style.width = smallestDimension + "px"
 	canvas.style.height = smallestDimension + "px"
 	
 	canvas.width = canvas.clientWidth
 	canvas.height = canvas.clientHeight
+	
 }
 
 //=========//
@@ -586,6 +634,16 @@ const fragmentShaderSource = `#version 300 es
 //=======//
 // Setup //
 //=======//
+const EMPTY = [0, 0, 0, 0]
+const SAND = [1.0, 204.0 / 255.0, 0.0, 1.0]
+const WATER = [0.0, 0.6, 1.0, 1.0]
+const STATIC = [0.5, 0.5, 0.5, 1.0]
+const FORKBOMB = [1.0, 70.0 / 255.0, 70.0 / 255.0, 1.0]
+let DROPPER_ELEMENT = SAND
+
+const menu = makeMenu()
+document.body.appendChild(menu)
+
 const canvas = makeCanvas()
 document.body.appendChild(canvas)
 const gl = makeContext(canvas)
@@ -620,12 +678,6 @@ gl.uniform1f(zoomLocation, ZOOM)
 const dropperPreviousPositionLocation = gl.getUniformLocation(program, "u_dropperPreviousPosition")
 gl.uniform2f(dropperPreviousPositionLocation, 0, 0)
 
-const EMPTY = [0, 0, 0, 0]
-const SAND = [1.0, 204.0 / 255.0, 0.0, 1.0]
-const WATER = [0.0, 0.6, 1.0, 1.0]
-const STATIC = [0.5, 0.5, 0.5, 1.0]
-const FORKBOMB = [1.0, 70.0 / 255.0, 70.0 / 255.0, 1.0]
-let DROPPER_ELEMENT = SAND
 const dropperElementLocation = gl.getUniformLocation(program, "u_dropperElement")
 gl.uniform4fv(dropperElementLocation, DROPPER_ELEMENT)
 
