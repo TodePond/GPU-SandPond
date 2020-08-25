@@ -36,11 +36,11 @@ BG_COLOUR.setRGB(13 / 255, 16 / 255, 23 / 255)
 //======//
 // Menu //
 //======//
-const MENU_WIDTH = 100
+const MENU_WIDTH = 90
 const makeMenu = () => {
 	const style = `
 		position: absolute;
-		width: 100px;
+		width: ${MENU_WIDTH}px;
 		z-index: 1;
 	`
 	const menu = HTML `<div class="menu" style="${style}"></div>`
@@ -63,16 +63,37 @@ const makeMenu = () => {
 const makeMenuItem = (name, element, colour, inverse = false) => {
 	const style = `
 		background-color: ${colour};
-		width: 100px;
+		width: ${MENU_WIDTH}px;
 		font-family: Rosario;
 		padding: 10px 0px;
+		margin: 10px;
 		cursor: default;
 		user-select: none;
 		color: ${inverse? "rgb(224, 224, 224)" : "rgb(13, 16, 23)"};
 	`
+	
 	const item = HTML `<div style="${style}" id="menuItem${name}" class="menuItem menuItem${name}">${name}</div>`
-	item.on.click(e => {
+	if (element === DROPPER_ELEMENT) item.classList.add("selected")
+	
+	const hover = HTML `
+		<style>
+			.menuItem${name}:hover {
+				outline: 3px solid ${colour};
+				position: relative;
+				z-index: 1;
+			}
+			
+			.menuItem${name}.selected {
+				outline: 3px solid ${inverse? "rgb(224, 224, 224)" : "rgb(13, 16, 23)"};
+			}
+		</style>
+	`
+	document.head.appendChild(hover)
+	
+	item.on.click(function() {
 		DROPPER_ELEMENT = element
+		$$(".menuItem").forEach(el => el.classList.remove("selected"))
+		this.classList.add("selected")
 	})
 	return item
 }
