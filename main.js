@@ -75,7 +75,7 @@ const makeMenuItem = (name, element, colour, inverse = false) => {
 	const item = HTML `<div style="${style}" id="menuItem${name}" class="menuItem menuItem${name}">${name}</div>`
 	if (element === DROPPER_ELEMENT) item.classList.add("selected")
 	
-	const hover = HTML `
+	const hover = HTML ` 
 		<style>
 			.menuItem${name}:hover {
 				outline: 3px solid ${colour};
