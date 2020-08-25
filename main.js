@@ -540,10 +540,10 @@ const fragmentShaderSource = `#version 300 es
 		// How do I behave? - FORKBOMB //
 		//=============================//
 		else if (elementOrigin == FORKBOMB) {
-			elementBelow = FORKBOMB;
-			elementLeft = FORKBOMB;
-			elementRight = FORKBOMB;
-			elementAbove = FORKBOMB;
+			if (elementBelow == EMPTY) elementBelow = FORKBOMB;
+			if (elementLeft == EMPTY) elementLeft = FORKBOMB;
+			if (elementRight == EMPTY) elementRight = FORKBOMB;
+			if (elementAbove == EMPTY) elementAbove = FORKBOMB;
 		}
 		
 		//=========================//
