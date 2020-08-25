@@ -778,9 +778,11 @@ canvas.on.mousedown(e => {
 canvas.on.mouseup(e => {
 	if (e.button === 0) mouseDown = false
 })
-
-canvas.on.mousedown(e => {
-
+canvas.on.touchstart(e => {
+	mouseDown = true
+})
+canvas.on.touchend(e => {
+	mouseDown = false
 })
 
 let time = 0
@@ -790,7 +792,7 @@ let previousMouseY = 0
 const draw = async () => {
 	
 	previousDown = dropperDown
-	dropperDown = mouseDown || Touches.length > 0
+	dropperDown = mouseDown
 	
 	const diffX = Mouse.x - previousMouseX
 	const diffY = Mouse.y - previousMouseY
