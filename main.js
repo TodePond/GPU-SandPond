@@ -11,11 +11,12 @@ const EVENT_WINDOW = EVENT_WINDOW_PARAM !== null? EVENT_WINDOW_PARAM.as(Number) 
 const RANDOM_SPAWN_PARAM = urlParams.get("s")
 const RANDOM_SPAWN = RANDOM_SPAWN_PARAM !== null? RANDOM_SPAWN_PARAM.as(Number) : 0
 
-const EVENTS_NEEDED_FOR_COVERAGE = EVENT_WINDOW == 1? 1 : 9
+const EVENT_CHANCE = 0.035
+const EVENTS_NEEDED_FOR_COVERAGE = EVENT_WINDOW == 1? 1 : 1 / EVENT_CHANCE
 
 const EVENTS_PER_FRAME_PARAM = urlParams.get("f")
-const EVENTS_PER_FRAME = EVENTS_PER_FRAME_PARAM !== null? EVENTS_PER_FRAME_PARAM.as(Number) : 1
-const EVENT_CYCLE_COUNT = Math.round(EVENTS_PER_FRAME * EVENTS_NEEDED_FOR_COVERAGE)
+const EVENTS_PER_FRAME = EVENTS_PER_FRAME_PARAM !== null? EVENTS_PER_FRAME_PARAM.as(Number) : 35
+const EVENT_CYCLE_COUNT = Math.round(EVENTS_PER_FRAME)
 
 let PAN_POSITION_X = 0
 let PAN_POSITION_Y = 0
@@ -253,7 +254,7 @@ const fragmentShaderSource = `#version 300 es
 		
 		vec2 space = ew(x, y);
 		
-		if (random(space / (u_seed + 1.0)) < 0.035) return true;
+		if (random(space / (u_seed + 1.0)) < ${EVENT_CHANCE}) return true;
 		
 		return false;
 	}
@@ -297,8 +298,15 @@ const fragmentShaderSource = `#version 300 es
 	}
 	
 	bool isInWindow(float x, float y) {
-		if (getWindowParticipationCount(x, y) != 1) return false;
-		return true;
+		if (isPickedAndNoOverlap(1.0, 0.0)) return true;
+		if (isPickedAndNoOverlap(1.0, 1.0)) return true;
+		if (isPickedAndNoOverlap(0.0, 1.0)) return true;
+		if (isPickedAndNoOverlap(-1.0, 1.0)) return true;
+		if (isPickedAndNoOverlap(-1.0, 0.0)) return true;
+		if (isPickedAndNoOverlap(-1.0, -1.0)) return true;
+		if (isPickedAndNoOverlap(0.0, -1.0)) return true;
+		if (isPickedAndNoOverlap(1.0, -1.0)) return true;
+		return false;
 	}
 	
 	const vec4 WHITE = vec4(224.0 / 255.0, 224.0 / 255.0, 224.0 / 255.0, 1.0);
@@ -427,16 +435,12 @@ const fragmentShaderSource = `#version 300 es
 			if (!EVENT_WINDOW) return ""
 			return `
 				
-				if (isPicked(0.0, 0.0)) {
-					if (isPickedAndNoOverlap(0.0, 0.0)) {
-						colour = RED;
-						return;
-					}
-					colour = SAND;
+				if (isPickedAndNoOverlap(0.0, 0.0)) {
+					colour = RED;
 					return;
 				}
 				
-				if (getWindowParticipationCount(0.0, 0.0) >= 1) {
+				if (isInWindow(0.0, 0.0)) {
 					colour = BLUE;
 					return;
 				}
@@ -459,13 +463,13 @@ const fragmentShaderSource = `#version 300 es
 		//=================//
 		int site;
 		
-		if (isPicked(0.0, 0.0)) site = ORIGIN;
-		else if (isPicked(0.0, 1.0)) site = BELOW;
-		else if (isPicked(-1.0, 1.0)) site = BELOW_RIGHT;
-		else if (isPicked(1.0, 1.0)) site = BELOW_LEFT;
-		else if (isPicked(-1.0, 0.0)) site = RIGHT;
-		else if (isPicked(1.0, 0.0)) site = LEFT;
-		else if (isPicked(0.0, -1.0)) site = ABOVE;
+		if (isPickedAndNoOverlap(0.0, 0.0)) site = ORIGIN;
+		else if (isPickedAndNoOverlap(0.0, 1.0)) site = BELOW;
+		else if (isPickedAndNoOverlap(-1.0, 1.0)) site = BELOW_RIGHT;
+		else if (isPickedAndNoOverlap(1.0, 1.0)) site = BELOW_LEFT;
+		else if (isPickedAndNoOverlap(-1.0, 0.0)) site = RIGHT;
+		else if (isPickedAndNoOverlap(1.0, 0.0)) site = LEFT;
+		else if (isPickedAndNoOverlap(0.0, -1.0)) site = ABOVE;
 		else {
 			colour = getColour(0.0, 0.0);
 			return;
@@ -872,11 +876,11 @@ const draw = async () => {
 	
 	for (let i = 0; i < EVENT_CYCLE_COUNT; i++) {
 	
-		time++
+		//time++
 		seed += SEED_STEP
 		if (seed > 1.0) seed = SEED_STEP
-		while (time >= 18) time -= 18
-		gl.uniform1f(timeLocation, time)
+		//while (time >= 18) time -= 18
+		//gl.uniform1f(timeLocation, time)
 		gl.uniform1f(seedLocation, seed)
 		gl.uniform1f(eventTimeLocation, i)
 	
