@@ -41,8 +41,9 @@ const makeMenu = () => {
 	const style = `
 		position: absolute;
 		width: 100px;
+		z-index: 1;
 	`
-	const menu = HTML `<div class="menu"></div>`
+	const menu = HTML `<div class="menu" style="${style}"></div>`
 	
 	const sand = makeMenuItem("Sand", SAND, "#fc0")
 	const water = makeMenuItem("Water", WATER, "rgb(0, 153, 255)")
@@ -84,9 +85,9 @@ const makeCanvas = () => {
 	const style = `
 		background-color: rgb(47, 51, 61);
 		margin: ${CANVAS_MARGIN}px;
-		${EVENT_WINDOW? "" : "cursor: normal;"}
+		${EVENT_WINDOW? "" : "cursor: none;"}
 		position: absolute;
-		left: ${MENU_WIDTH}px;
+		left: 0px;
 		top:0px;
 	`
 	const canvas = HTML `<canvas style="${style}"></canvas>`
@@ -94,7 +95,7 @@ const makeCanvas = () => {
 }
 	
 const resizeCanvas = (canvas) => {
-	const smallestDimension = Math.min(document.body.clientWidth - MENU_WIDTH - CANVAS_MARGIN * 2, document.body.clientHeight - CANVAS_MARGIN * 2)
+	const smallestDimension = Math.min(document.body.clientWidth - CANVAS_MARGIN * 2, document.body.clientHeight - CANVAS_MARGIN * 2)
 	canvas.style.width = smallestDimension + "px"
 	canvas.style.height = smallestDimension + "px"
 	
@@ -770,6 +771,18 @@ on.mouseup(e => {
 	if (e.button === 1) middleDown = false
 })
 
+let mouseDown = false
+canvas.on.mousedown(e => {
+	if (e.button === 0) mouseDown = true
+})
+canvas.on.mouseup(e => {
+	if (e.button === 0) mouseDown = false
+})
+
+canvas.on.mousedown(e => {
+
+})
+
 let time = 0
 
 let previousMouseX = 0
@@ -777,8 +790,7 @@ let previousMouseY = 0
 const draw = async () => {
 	
 	previousDown = dropperDown
-	dropperDown = Mouse.down || Touches.length > 0
-	
+	dropperDown = mouseDown || Touches.length > 0
 	
 	const diffX = Mouse.x - previousMouseX
 	const diffY = Mouse.y - previousMouseY
