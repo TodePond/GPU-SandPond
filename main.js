@@ -11,11 +11,11 @@ const EVENT_WINDOW = EVENT_WINDOW_PARAM !== null? EVENT_WINDOW_PARAM.as(Number) 
 const RANDOM_SPAWN_PARAM = urlParams.get("s")
 const RANDOM_SPAWN = RANDOM_SPAWN_PARAM !== null? RANDOM_SPAWN_PARAM.as(Number) : 0
 
-const EVENT_CHANCE = 0.035
+const EVENT_CHANCE = 0.05
 const EVENTS_NEEDED_FOR_COVERAGE = EVENT_WINDOW == 1? 1 : 1 / EVENT_CHANCE
 
 const EVENTS_PER_FRAME_PARAM = urlParams.get("f")
-const EVENTS_PER_FRAME = EVENTS_PER_FRAME_PARAM !== null? EVENTS_PER_FRAME_PARAM.as(Number) : 35
+const EVENTS_PER_FRAME = EVENTS_PER_FRAME_PARAM !== null? EVENTS_PER_FRAME_PARAM.as(Number) : 24
 const EVENT_CYCLE_COUNT = Math.round(EVENTS_PER_FRAME)
 
 let PAN_POSITION_X = 0
@@ -250,13 +250,59 @@ const fragmentShaderSource = `#version 300 es
 		return xy;
 	}
 	
+	float getPickedScore(float x, float y) {
+		vec2 space = ew(x, y);
+		return random(space / (u_seed + 1.0));
+	}
+	
 	bool isPicked(float x, float y) {
 		
-		vec2 space = ew(x, y);
+		float score = getPickedScore(x, y);
 		
-		if (random(space / (u_seed + 1.0)) < ${EVENT_CHANCE}) return true;
+		if (score < ${EVENT_CHANCE}) return true;
 		
 		return false;
+	}
+	
+	bool isBestScore(float x, float y) {
+		float score = getPickedScore(x, y);
+		
+		// 1 space away
+		if (score >= getPickedScore(x + 1.0, y + 0.0)) return false;
+		if (score >= getPickedScore(x + 1.0, y + 1.0)) return false;
+		if (score >= getPickedScore(x + 0.0, y + 1.0)) return false;
+		if (score >= getPickedScore(x + -1.0, y + 1.0)) return false;
+		if (score >= getPickedScore(x + -1.0, y + 0.0)) return false;
+		if (score >= getPickedScore(x + -1.0, y + -1.0)) return false;
+		if (score >= getPickedScore(x + 0.0, y + -1.0)) return false;
+		if (score >= getPickedScore(x + 1.0, y + -1.0)) return false;
+		
+		// 2 spaces away
+		if (score >= getPickedScore(x - 2.0, y + 2.0)) return false;
+		if (score >= getPickedScore(x - 1.0, y + 2.0)) return false;
+		if (score >= getPickedScore(x + 0.0, y + 2.0)) return false;
+		if (score >= getPickedScore(x + 1.0, y + 2.0)) return false;
+		if (score >= getPickedScore(x + 2.0, y + 2.0)) return false;
+		
+		if (score >= getPickedScore(x - 2.0, y - 2.0)) return false;
+		if (score >= getPickedScore(x - 1.0, y - 2.0)) return false;
+		if (score >= getPickedScore(x + 0.0, y - 2.0)) return false;
+		if (score >= getPickedScore(x + 1.0, y - 2.0)) return false;
+		if (score >= getPickedScore(x + 2.0, y - 2.0)) return false;
+		
+		if (score >= getPickedScore(x - 2.0, y + 1.0)) return false;
+		if (score >= getPickedScore(x - 2.0, y + 0.0)) return false;
+		if (score >= getPickedScore(x - 2.0, y - 1.0)) return false;
+		
+		if (score >= getPickedScore(x + 2.0, y + 1.0)) return false;
+		if (score >= getPickedScore(x + 2.0, y + 0.0)) return false;
+		if (score >= getPickedScore(x + 2.0, y - 1.0)) return false;
+		
+		return true;
+	}
+	
+	bool isPickedAndBest(float x, float y) {
+		return isPicked(x, y) && isBestScore(x, y);
 	}
 	
 	int getWindowParticipationCount(float x, float y) {
@@ -435,12 +481,17 @@ const fragmentShaderSource = `#version 300 es
 			if (!EVENT_WINDOW) return ""
 			return `
 				
-				if (isPickedAndNoOverlap(0.0, 0.0)) {
+				if (isPickedAndBest(0.0, 0.0)) {
 					colour = RED;
 					return;
 				}
 				
-				if (isInWindow(0.0, 0.0)) {
+				if (isPicked(0.0, 0.0)) {
+					colour = SAND;
+					return;
+				}
+				
+				if (isPickedInWindow(0.0, 0.0)) {
 					colour = BLUE;
 					return;
 				}
@@ -463,13 +514,13 @@ const fragmentShaderSource = `#version 300 es
 		//=================//
 		int site;
 		
-		if (isPickedAndNoOverlap(0.0, 0.0)) site = ORIGIN;
-		else if (isPickedAndNoOverlap(0.0, 1.0)) site = BELOW;
-		else if (isPickedAndNoOverlap(-1.0, 1.0)) site = BELOW_RIGHT;
-		else if (isPickedAndNoOverlap(1.0, 1.0)) site = BELOW_LEFT;
-		else if (isPickedAndNoOverlap(-1.0, 0.0)) site = RIGHT;
-		else if (isPickedAndNoOverlap(1.0, 0.0)) site = LEFT;
-		else if (isPickedAndNoOverlap(0.0, -1.0)) site = ABOVE;
+		if (isPickedAndBest(0.0, 0.0)) site = ORIGIN;
+		else if (isPickedAndBest(0.0, 1.0)) site = BELOW;
+		else if (isPickedAndBest(-1.0, 1.0)) site = BELOW_RIGHT;
+		else if (isPickedAndBest(1.0, 1.0)) site = BELOW_LEFT;
+		else if (isPickedAndBest(-1.0, 0.0)) site = RIGHT;
+		else if (isPickedAndBest(1.0, 0.0)) site = LEFT;
+		else if (isPickedAndBest(0.0, -1.0)) site = ABOVE;
 		else {
 			colour = getColour(0.0, 0.0);
 			return;
