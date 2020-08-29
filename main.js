@@ -15,7 +15,7 @@ const EVENT_CHANCE = 0.05
 const EVENTS_NEEDED_FOR_COVERAGE = EVENT_WINDOW == 1? 1 : 1 / EVENT_CHANCE
 
 const EVENTS_PER_FRAME_PARAM = urlParams.get("f")
-const EVENTS_PER_FRAME = EVENTS_PER_FRAME_PARAM !== null? EVENTS_PER_FRAME_PARAM.as(Number) : 24
+const EVENTS_PER_FRAME = EVENTS_PER_FRAME_PARAM !== null? EVENTS_PER_FRAME_PARAM.as(Number) : 12
 const EVENT_CYCLE_COUNT = Math.round(EVENTS_PER_FRAME)
 
 let PAN_POSITION_X = 0
@@ -302,56 +302,18 @@ const fragmentShaderSource = `#version 300 es
 	}
 	
 	bool isPickedAndBest(float x, float y) {
-		return isPicked(x, y) && isBestScore(x, y);
-	}
-	
-	int getWindowParticipationCount(float x, float y) {
-		int score = 0;
-		if (isPicked(x + 1.0, y + 0.0)) score += 1;
-		if (isPicked(x + 1.0, y + 1.0)) score += 1;
-		if (isPicked(x + 0.0, y + 1.0)) score += 1;
-		if (isPicked(x + -1.0, y + 1.0)) score += 1;
-		if (isPicked(x + -1.0, y + 0.0)) score += 1;
-		if (isPicked(x + -1.0, y + -1.0)) score += 1;
-		if (isPicked(x + 0.0, y + -1.0)) score += 1;
-		if (isPicked(x + 1.0, y + -1.0)) score += 1;
-		return score;
-	}
-	
-	bool isPickedAndNoOverlap(float x, float y) {
-		if (!isPicked(x, y)) return false;
-		if (getWindowParticipationCount(x + 1.0, y + 0.0) != 1) return false;
-		if (getWindowParticipationCount(x + 1.0, y + 1.0) != 1) return false;
-		if (getWindowParticipationCount(x + 0.0, y + 1.0) != 1) return false;
-		if (getWindowParticipationCount(x + -1.0, y + 1.0) != 1) return false;
-		if (getWindowParticipationCount(x + -1.0, y + 0.0) != 1) return false;
-		if (getWindowParticipationCount(x + -1.0, y + -1.0) != 1) return false;
-		if (getWindowParticipationCount(x + 0.0, y + -1.0) != 1) return false;
-		if (getWindowParticipationCount(x + 1.0, y + -1.0) != 1) return false;
-		return true;
+		return isBestScore(x, y);
 	}
 	
 	bool isPickedInWindow(float x, float y) {
-		if (isPicked(1.0, 0.0)) return true;
-		if (isPicked(1.0, 1.0)) return true;
-		if (isPicked(0.0, 1.0)) return true;
-		if (isPicked(-1.0, 1.0)) return true;
-		if (isPicked(-1.0, 0.0)) return true;
-		if (isPicked(-1.0, -1.0)) return true;
-		if (isPicked(0.0, -1.0)) return true;
-		if (isPicked(1.0, -1.0)) return true;
-		return false;
-	}
-	
-	bool isInWindow(float x, float y) {
-		if (isPickedAndNoOverlap(1.0, 0.0)) return true;
-		if (isPickedAndNoOverlap(1.0, 1.0)) return true;
-		if (isPickedAndNoOverlap(0.0, 1.0)) return true;
-		if (isPickedAndNoOverlap(-1.0, 1.0)) return true;
-		if (isPickedAndNoOverlap(-1.0, 0.0)) return true;
-		if (isPickedAndNoOverlap(-1.0, -1.0)) return true;
-		if (isPickedAndNoOverlap(0.0, -1.0)) return true;
-		if (isPickedAndNoOverlap(1.0, -1.0)) return true;
+		if (isPickedAndBest(1.0, 0.0)) return true;
+		if (isPickedAndBest(1.0, 1.0)) return true;
+		if (isPickedAndBest(0.0, 1.0)) return true;
+		if (isPickedAndBest(-1.0, 1.0)) return true;
+		if (isPickedAndBest(-1.0, 0.0)) return true;
+		if (isPickedAndBest(-1.0, -1.0)) return true;
+		if (isPickedAndBest(0.0, -1.0)) return true;
+		if (isPickedAndBest(1.0, -1.0)) return true;
 		return false;
 	}
 	
@@ -481,15 +443,15 @@ const fragmentShaderSource = `#version 300 es
 			if (!EVENT_WINDOW) return ""
 			return `
 				
-				if (isPickedAndBest(0.0, 0.0)) {
+				if (isBestScore(0.0, 0.0)) {
 					colour = RED;
 					return;
 				}
 				
-				if (isPicked(0.0, 0.0)) {
+				/*if (isPicked(0.0, 0.0)) {
 					colour = SAND;
 					return;
-				}
+				}*/
 				
 				if (isPickedInWindow(0.0, 0.0)) {
 					colour = BLUE;
@@ -608,23 +570,29 @@ const fragmentShaderSource = `#version 300 es
 			elementRight = getColour(1.0, -1.0);
 		}
 		
+		if (elementOrigin == EMPTY) {
+			
+		}
+		
 		//==========================//
 		// How do I behave? - WATER //
 		//==========================//
-		// Fall
-		if (isElement(elementOrigin, WATER) && elementBelow == EMPTY) {
-			elementOrigin = EMPTY;
-			elementBelow = WATER;
-		}
-		
-		else if (isElement(elementOrigin, WATER) && elementLeft == EMPTY) {
-			elementOrigin = EMPTY;
-			elementLeft = WATER;
-		}
-		
-		else if (isElement(elementOrigin, WATER) && elementRight == EMPTY) {
-			elementOrigin = EMPTY;
-			elementRight = WATER;
+		else if (isElement(elementOrigin, WATER)) {
+			// Fall
+			if (elementBelow == EMPTY) {
+				elementOrigin = EMPTY;
+				elementBelow = WATER;
+			}
+			
+			else if (elementLeft == EMPTY) {
+				elementOrigin = EMPTY;
+				elementLeft = WATER;
+			}
+			
+			else if (elementRight == EMPTY) {
+				elementOrigin = EMPTY;
+				elementRight = WATER;
+			}
 		}
 		
 		//=============================//
@@ -640,22 +608,24 @@ const fragmentShaderSource = `#version 300 es
 		//=========================//
 		// How do I behave? - SAND //
 		//=========================//
-		// Fall
-		else if (elementOrigin == SAND && elementBelow == EMPTY) {
-			elementOrigin = EMPTY;
-			elementBelow = SAND;
-		}
-		
-		// Slide Right
-		else if (elementOrigin == SAND && elementBelow != EMPTY && elementBelowRight == EMPTY) {
-			elementOrigin = EMPTY;
-			elementBelowRight = SAND;
-		}
-		
-		// Slide Left
-		else if (elementOrigin == SAND && elementBelow != EMPTY && elementBelowRight != EMPTY && elementBelowLeft == EMPTY) {
-			elementOrigin = EMPTY;
-			elementBelowLeft = SAND;
+		else if (elementOrigin == SAND) {
+			// Fall
+			if (elementBelow == EMPTY || isElement(elementBelow, WATER)) {
+				elementOrigin = elementBelow;
+				elementBelow = SAND;
+			}
+			
+			// Slide Right
+			else if (elementBelowRight == EMPTY || isElement(elementBelowRight, WATER)) {
+				elementOrigin = elementBelowRight;
+				elementBelowRight = SAND;
+			}
+			
+			// Slide Left
+			else if (elementBelowLeft == EMPTY || isElement(elementBelowLeft, WATER)) {
+				elementOrigin = elementBelowLeft;
+				elementBelowLeft = SAND;
+			}
 		}
 		
 		//================//
