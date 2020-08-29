@@ -6,7 +6,7 @@ It uses WebGL2 so if you use Safari, you'll need to enable `WebGL 2.0` in the `E
 It's currently very intensive on the GPU so probably won't work on mobile devices.
 
 ## Settings
-There are some settings you can access by putting parameters after the URL (eg: [gpu.sandpond.cool?w=1000&r=0&f=0.5](https://gpu.sandpond.cool?w=1000&f=2)).
+There are some settings you can access by putting parameters after the URL (eg: [gpu.sandpond.cool?w=1000&f=2](https://gpu.sandpond.cool?w=1000&f=2)).
 
 **Width**<br>
 `w` sets the width (and height) of the world (default: 300).
