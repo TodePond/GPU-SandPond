@@ -208,6 +208,91 @@ const vertexShaderSource = `#version 300 es
 //=================//
 // Fragment Shader //
 //=================//
+const coordsOrigin = [
+	[-1, 1],
+	[ 0, 1],
+	[ 1, 1],
+	
+	[-1, 0],
+	[ 1, 0],
+	
+	[-1,-1],
+	[ 0,-1],
+	[ 1,-1],
+	
+	[-2, 2],
+	[-1, 2],
+	[ 0, 2],
+	[ 1, 2],
+	[ 2, 2],
+	
+	[-2,-2],
+	[-1,-2],
+	[ 0,-2],
+	[ 1,-2],
+	[ 2,-2],
+	
+	[-2, 1],
+	[-2, 0],
+	[-2,-1],
+	
+	[ 2, 1],
+	[ 2, 0],
+	[ 2,-1],
+]
+
+const sitesKey = [
+	["ORIGIN", [0, 0]],
+	["BELOW", [0, -1]],
+	["RIGHT", [1, 0]],
+	["LEFT", [-1, 0]],
+	//["ABOVE", [0, 1]],
+	//["BELOW_RIGHT", [1, -1]],
+	//["BELOW_LEFT", [-1, -1]],
+]
+
+const getAxisSuffix = (a) => {
+	if (a >= 0) return `${a}`
+	return `_${a * -1}`
+}
+const getCoordSuffix = (x, y) => {
+	return getAxisSuffix(x) + getAxisSuffix(y)
+}
+
+const gen = (coords = coordsOrigin, margin = ``, sites) => {
+	const lines = []
+	const [siteName, [rx, ry]] = sites[0]
+	//console.log(siteName)
+	
+	const [cx, cy] = coords[0]
+	const x = cx + rx
+	const y = cy + ry
+	
+	const coordSuffix = getCoordSuffix(x, y)
+	lines.push(`${margin}vec2 space${coordSuffix} = ew(${x}.0, ${y}.0);`)
+	lines.push(`${margin}float score${coordSuffix} = getPickedScoreOfSpace(space${coordSuffix});`)
+	lines.push(`${margin}if (score00 < score${coordSuffix}) {`)
+	
+	if (coords.length > 1) {
+		lines.push(...gen(coords.slice(1), margin + `	`, sites))
+	}
+	else {
+		lines.push(`${margin}	return ${siteName};`)
+	}
+	
+	lines.push(`${margin}}`)
+	
+	if (sites.length > 1) {
+		//lines.push(...gen(undefined, margin, sites.slice(1)))
+	}
+	else {
+		//console.log("Hioi")
+	}
+	
+	return lines
+}
+
+
 const fragmentShaderSource = `#version 300 es
 
 	precision highp float;
@@ -250,61 +335,125 @@ const fragmentShaderSource = `#version 300 es
 		return xy;
 	}
 	
-	float getPickedScore(float x, float y) {
-		vec2 space = ew(x, y);
+	float getPickedScoreOfSpace(vec2 space) {
 		return random(space / (u_seed + 1.0));
 	}
 	
-	bool isPicked(float x, float y) {
-		
-		float score = getPickedScore(x, y);
-		
-		if (score < ${EVENT_CHANCE}) return true;
-		
-		return false;
+	float getPickedScore(float x, float y) {
+		vec2 space = ew(x, y);
+		return getPickedScoreOfSpace(space);
 	}
 	
-	bool isBestScore(float x, float y) {
-		float score = getPickedScore(x, y);
+	// hot function
+	bool isPickedAndBest(float x, float y) {
+		
+		vec2 space = ew(x, y);
+		
+		float score = getPickedScoreOfSpace(space);
+		
+		float x1 = x + 1.0;
+		float x_1 = x - 1.0;
+		float y1 = y + 1.0;
+		float y_1 = y - 1.0;
 		
 		// 1 space away
-		if (score >= getPickedScore(x + 1.0, y + 0.0)) return false;
-		if (score >= getPickedScore(x + 1.0, y + 1.0)) return false;
-		if (score >= getPickedScore(x + 0.0, y + 1.0)) return false;
-		if (score >= getPickedScore(x + -1.0, y + 1.0)) return false;
-		if (score >= getPickedScore(x + -1.0, y + 0.0)) return false;
-		if (score >= getPickedScore(x + -1.0, y + -1.0)) return false;
-		if (score >= getPickedScore(x + 0.0, y + -1.0)) return false;
-		if (score >= getPickedScore(x + 1.0, y + -1.0)) return false;
+		if (score >= getPickedScore(x1, y)) return false;
+		if (score >= getPickedScore(x1, y1)) return false;
+		if (score >= getPickedScore(x, y1)) return false;
+		if (score >= getPickedScore(x_1, y1)) return false;
+		if (score >= getPickedScore(x_1, y)) return false;
+		if (score >= getPickedScore(x_1, y_1)) return false;
+		if (score >= getPickedScore(x, y_1)) return false;
+		if (score >= getPickedScore(x1, y_1)) return false;
 		
 		// 2 spaces away
-		if (score >= getPickedScore(x - 2.0, y + 2.0)) return false;
-		if (score >= getPickedScore(x - 1.0, y + 2.0)) return false;
-		if (score >= getPickedScore(x + 0.0, y + 2.0)) return false;
-		if (score >= getPickedScore(x + 1.0, y + 2.0)) return false;
-		if (score >= getPickedScore(x + 2.0, y + 2.0)) return false;
+		float x2 = x + 2.0;
+		float x_2 = x - 2.0;
+		float y2 = y + 2.0;
+		float y_2 = y - 2.0;
 		
-		if (score >= getPickedScore(x - 2.0, y - 2.0)) return false;
-		if (score >= getPickedScore(x - 1.0, y - 2.0)) return false;
-		if (score >= getPickedScore(x + 0.0, y - 2.0)) return false;
-		if (score >= getPickedScore(x + 1.0, y - 2.0)) return false;
-		if (score >= getPickedScore(x + 2.0, y - 2.0)) return false;
+		if (score >= getPickedScore(x_2, y2)) return false;
+		if (score >= getPickedScore(x_1, y2)) return false;
+		if (score >= getPickedScore(x, y2)) return false;
+		if (score >= getPickedScore(x1, y2)) return false;
+		if (score >= getPickedScore(x2, y2)) return false;
 		
-		if (score >= getPickedScore(x - 2.0, y + 1.0)) return false;
-		if (score >= getPickedScore(x - 2.0, y + 0.0)) return false;
-		if (score >= getPickedScore(x - 2.0, y - 1.0)) return false;
+		if (score >= getPickedScore(x_2, y_2)) return false;
+		if (score >= getPickedScore(x_1, y_2)) return false;
+		if (score >= getPickedScore(x, y_2)) return false;
+		if (score >= getPickedScore(x1, y_2)) return false;
+		if (score >= getPickedScore(x2, y_2)) return false;
 		
-		if (score >= getPickedScore(x + 2.0, y + 1.0)) return false;
-		if (score >= getPickedScore(x + 2.0, y + 0.0)) return false;
-		if (score >= getPickedScore(x + 2.0, y - 1.0)) return false;
+		if (score >= getPickedScore(x_2, y1)) return false;
+		if (score >= getPickedScore(x_2, y)) return false;
+		if (score >= getPickedScore(x_2, y_1)) return false;
+		
+		if (score >= getPickedScore(x2, y1)) return false;
+		if (score >= getPickedScore(x2, y)) return false;
+		if (score >= getPickedScore(x2, y1)) return false;
 		
 		return true;
 	}
 	
-	bool isPickedAndBest(float x, float y) {
-		return isBestScore(x, y);
+	
+	
+	// Site Numbers
+	const int ORIGIN = 1;
+	const int BELOW = 2;
+	const int BELOW_RIGHT = 3;
+	const int BELOW_LEFT = 4;
+	const int RIGHT = 5;
+	const int LEFT = 6;
+	const int ABOVE = 7;
+	
+	/*float score00;
+	
+	float score_11;
+	float score01;
+	float score11;
+	float score_10;
+	float score10;
+	float score_1_1;
+	float score0_1;
+	float score1_1;
+	
+	float score_22;
+	float score_12;
+	float score02;
+	float score12;
+	float score22;
+	
+	float score_2_2;
+	float score_1_2;
+	float score0_2;
+	float score1_2;
+	float score2_2;
+	
+	float score_21;
+	float score_20;
+	float score_2_1;
+	
+	float score21;
+	float score20;
+	float score2_1;*/
+	
+	int getMySite() {
+	
+		vec2 space00 = ew(0.0, 0.0);
+		float score00 = getPickedScoreOfSpace(space00);
+		
+		// Am I an origin?
+		if (isPickedAndBest(0.0, 0.0)) return ORIGIN;
+		if (isPickedAndBest(0.0, 1.0)) return BELOW;
+		if (isPickedAndBest(-1.0, 0.0)) return RIGHT;
+		if (isPickedAndBest(1.0, 0.0)) return LEFT;
+		if (isPickedAndBest(0.0, -1.0)) return ABOVE;
+		if (isPickedAndBest(-1.0, 1.0)) return BELOW_RIGHT;
+		if (isPickedAndBest(1.0, 1.0)) return BELOW_LEFT;
+		return 0;
 	}
 	
+	// only used for debug vis
 	bool isPickedInWindow(float x, float y) {
 		if (isPickedAndBest(1.0, 0.0)) return true;
 		if (isPickedAndBest(1.0, 1.0)) return true;
@@ -422,20 +571,13 @@ const fragmentShaderSource = `#version 300 es
 		return false;
 	}
 	
-	// Site Numbers
-	const int ORIGIN = 1;
-	const int BELOW = 2;
-	const int BELOW_RIGHT = 3;
-	const int BELOW_LEFT = 4;
-	const int RIGHT = 5;
-	const int LEFT = 6;
-	const int ABOVE = 7;
-	
 	uniform vec4 u_dropperElement;
 	
 	bool isElement(vec4 colour, vec4 element) {
 		return floor(colour * 255.0) == floor(element * 255.0);
 	}
+	
+	
 	
 	void process() {
 	
@@ -443,22 +585,29 @@ const fragmentShaderSource = `#version 300 es
 			if (!EVENT_WINDOW) return ""
 			return `
 				
-				if (isBestScore(0.0, 0.0)) {
+				int sitey = getMySite();
+				
+				if (sitey == ORIGIN) {
 					colour = RED;
 					return;
 				}
 				
-				/*if (isPicked(0.0, 0.0)) {
-					colour = SAND;
+				if (sitey == 0) {
+					colour = BLANK;
 					return;
-				}*/
+				}
+				
+				/*if (isPickedAndBest(0.0, 0.0)) {
+					colour = RED;
+					return;
+				}
 				
 				if (isPickedInWindow(0.0, 0.0)) {
 					colour = BLUE;
 					return;
 				}
-				
-				colour = BLANK;
+				*/
+				colour = BLUE;
 				return;
 			`
 		})()}
@@ -474,16 +623,8 @@ const fragmentShaderSource = `#version 300 es
 		//=================//
 		// What site am I? //
 		//=================//
-		int site;
-		
-		if (isPickedAndBest(0.0, 0.0)) site = ORIGIN;
-		else if (isPickedAndBest(0.0, 1.0)) site = BELOW;
-		else if (isPickedAndBest(-1.0, 1.0)) site = BELOW_RIGHT;
-		else if (isPickedAndBest(1.0, 1.0)) site = BELOW_LEFT;
-		else if (isPickedAndBest(-1.0, 0.0)) site = RIGHT;
-		else if (isPickedAndBest(1.0, 0.0)) site = LEFT;
-		else if (isPickedAndBest(0.0, -1.0)) site = ABOVE;
-		else {
+		int site = getMySite();
+		if (site == 0) {
 			colour = getColour(0.0, 0.0);
 			return;
 		}

@@ -1,0 +1,97 @@
+		vec2 space_11 = ew(-1.0, 1.0);
+		float score_11 = getPickedScoreOfSpace(space_11);
+		if (score00 < score_11) {
+			vec2 space01 = ew(0.0, 1.0);
+			float score01 = getPickedScoreOfSpace(space01);
+			if (score00 < score01) {
+				vec2 space11 = ew(1.0, 1.0);
+				float score11 = getPickedScoreOfSpace(space11);
+				if (score00 < score11) {
+					vec2 space_10 = ew(-1.0, 0.0);
+					float score_10 = getPickedScoreOfSpace(space_10);
+					if (score00 < score_10) {
+						vec2 space10 = ew(1.0, 0.0);
+						float score10 = getPickedScoreOfSpace(space10);
+						if (score00 < score10) {
+							vec2 space_1_1 = ew(-1.0, -1.0);
+							float score_1_1 = getPickedScoreOfSpace(space_1_1);
+							if (score00 < score_1_1) {
+								vec2 space0_1 = ew(0.0, -1.0);
+								float score0_1 = getPickedScoreOfSpace(space0_1);
+								if (score00 < score0_1) {
+									vec2 space1_1 = ew(1.0, -1.0);
+									float score1_1 = getPickedScoreOfSpace(space1_1);
+									if (score00 < score1_1) {
+										vec2 space_22 = ew(-2.0, 2.0);
+										float score_22 = getPickedScoreOfSpace(space_22);
+										if (score00 < score_22) {
+											vec2 space_12 = ew(-1.0, 2.0);
+											float score_12 = getPickedScoreOfSpace(space_12);
+											if (score00 < score_12) {
+												vec2 space02 = ew(0.0, 2.0);
+												float score02 = getPickedScoreOfSpace(space02);
+												if (score00 < score02) {
+													vec2 space12 = ew(1.0, 2.0);
+													float score12 = getPickedScoreOfSpace(space12);
+													if (score00 < score12) {
+														vec2 space22 = ew(2.0, 2.0);
+														float score22 = getPickedScoreOfSpace(space22);
+														if (score00 < score22) {
+															vec2 space_2_2 = ew(-2.0, -2.0);
+															float score_2_2 = getPickedScoreOfSpace(space_2_2);
+															if (score00 < score_2_2) {
+																vec2 space_1_2 = ew(-1.0, -2.0);
+																float score_1_2 = getPickedScoreOfSpace(space_1_2);
+																if (score00 < score_1_2) {
+																	vec2 space0_2 = ew(0.0, -2.0);
+																	float score0_2 = getPickedScoreOfSpace(space0_2);
+																	if (score00 < score0_2) {
+																		vec2 space1_2 = ew(1.0, -2.0);
+																		float score1_2 = getPickedScoreOfSpace(space1_2);
+																		if (score00 < score1_2) {
+																			vec2 space2_2 = ew(2.0, -2.0);
+																			float score2_2 = getPickedScoreOfSpace(space2_2);
+																			if (score00 < score2_2) {
+																				vec2 space_21 = ew(-2.0, 1.0);
+																				float score_21 = getPickedScoreOfSpace(space_21);
+																				if (score00 < score_21) {
+																					vec2 space_20 = ew(-2.0, 0.0);
+																					float score_20 = getPickedScoreOfSpace(space_20);
+																					if (score00 < score_20) {
+																						vec2 space_2_1 = ew(-2.0, -1.0);
+																						float score_2_1 = getPickedScoreOfSpace(space_2_1);
+																						if (score00 < score_2_1) {
+																							vec2 space21 = ew(2.0, 1.0);
+																							float score21 = getPickedScoreOfSpace(space21);
+																							if (score00 < score21) {
+																								vec2 space20 = ew(2.0, 0.0);
+																								float score20 = getPickedScoreOfSpace(space20);
+																								if (score00 < score20) {
+																									vec2 space2_1 = ew(2.0, -1.0);
+																									float score2_1 = getPickedScoreOfSpace(space2_1);
+																									if (score00 < score2_1) {
+																										return ORIGIN;
+																									}
+																								}
+																							}
+																						}
+																					}
+																				}
+																			}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
